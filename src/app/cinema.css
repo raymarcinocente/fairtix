@@ -4167,3 +4167,19 @@ option {
   color: #746480;
   font-size: 12px;
 }
+
+.hero-bottom-line {
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+.hero-bottom-line .hero-edition {
+  display: none;
+}
+.hero-bottom-line .hero-pagination {
+  position: static;
+  transform: none;
+}
+.hero-bottom-line .hero-arrow-controls {
+  justify-content: center;
+}

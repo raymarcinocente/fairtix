@@ -248,3 +248,21 @@
     margin-bottom: 12px;
   }
 }
+
+.cinema-header-actions .account-menu > summary {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 50%;
+}
+@media (max-width: 700px) {
+  .cinema-header-actions .account-menu > summary {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+  }
+  .cinema-home {
+    padding-bottom: 0;
+  }
+}

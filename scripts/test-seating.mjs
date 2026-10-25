@@ -326,6 +326,7 @@ try {
       legacyPage.evaluate(() => localStorage.getItem("fairtix-showcase-v1")),
     )
     .toBeNull();
+  await legacyPage.getByLabel("Account menu", {exact:true}).click();
   await expect(
     legacyPage.getByRole("link", { name: "Sign In", exact: true }),
   ).toBeVisible();

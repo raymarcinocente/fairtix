@@ -166,7 +166,6 @@ export function CinemaHeader({
               <details className="account-menu">
                 <summary aria-label="Account menu">
                   <CinemaIcon name="user" size={18} />
-                  <span className="account-menu-name">{user.firstName}</span>
                 </summary>
                 <div className="account-menu-items">
                   {[
@@ -174,6 +173,7 @@ export function CinemaHeader({
                     ["My Tickets", "/tickets"],
                     ["Transactions", "/account/transactions"],
                     ["My Wallet", "/account/wallet"],
+                    ["Saved Concerts", "/saved"],
                   ].map(([label, path]) => (
                     <Link href={path} key={path}>
                       {label}
@@ -201,49 +201,26 @@ export function CinemaHeader({
                 </div>
               </details>
             ) : (
-              <>
-                <Link className="auth-nav-link" href="/login">
-                  Sign In
-                </Link>
-                <Link
-                  className="auth-nav-link auth-nav-register"
-                  href="/register"
-                >
-                  Register
-                </Link>
-              </>
+              <details className="account-menu">
+                <summary aria-label="Account menu">
+                  <CinemaIcon name="user" size={18} />
+                </summary>
+                <div className="account-menu-items">
+                  <Link className="auth-nav-link" href="/login">
+                    Sign In
+                  </Link>
+                  <Link
+                    className="auth-nav-link auth-nav-register"
+                    href="/register"
+                  >
+                    Register
+                  </Link>
+                  <Link href="/saved">Saved Concerts</Link>
+                </div>
+              </details>
             ))}
         </div>
       </header>
-      <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
-        {[
-          ["Home", "/", "home"],
-          ["Search", "search", "search"],
-          ["Saved", "/saved", "heart"],
-          ["My Tickets", "/tickets", "ticket"],
-          ["Profile", "/account", "user"],
-        ].map(([label, href, icon]) =>
-          href === "search" ? (
-            <button key={label} onClick={() => setSearchOpen(true)}>
-              <CinemaIcon name={icon} />
-              <span>{label}</span>
-            </button>
-          ) : (
-            <Link
-              href={href}
-              key={label}
-              aria-current={
-                (view === "home" && href === "/") || href === `/${view}`
-                  ? "page"
-                  : undefined
-              }
-            >
-              <CinemaIcon name={icon} />
-              <span>{label}</span>
-            </Link>
-          ),
-        )}
-      </nav>
       {searchOpen && <SearchDialog onClose={() => setSearchOpen(false)} />}
     </>
   );
@@ -503,6 +480,12 @@ export function CinemaHome() {
   const [genre, setGenre] = useState("For you");
   const featured = [concerts[0], concerts[1], concerts[5]];
   const current = featured[active];
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (!document.hidden) setActive((index) => (index + 1) % featured.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [active, featured.length]);
   const list =
     genre === "For you"
       ? concerts
@@ -584,10 +567,6 @@ export function CinemaHome() {
                 <span />
               </button>
             ))}
-            <span className="hero-page-number">
-              0{active + 1}
-              <i>/ 03</i>
-            </span>
           </div>
           <div className="hero-arrow-controls">
             <button

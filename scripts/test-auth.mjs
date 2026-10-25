@@ -68,6 +68,7 @@ try {
   const page = await context.newPage();
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(base);
+  await page.getByLabel("Account menu", {exact:true}).click();
   await expect(
     page.getByRole("link", { name: "Sign In", exact: true }),
   ).toBeVisible();
