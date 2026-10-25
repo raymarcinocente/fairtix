@@ -6,7 +6,9 @@ import { expectedPayouts, formatXlm, getPaiflowConfig } from "./config";
 import { assertOriginalEnvelope, transactionHash } from "./envelope";
 import { BadRequestError } from "./http";
 import { type Order, OrderNotFoundError, type OrderStatus, readOrder, withOrder } from "./orders";
-import { verifyOrder, type Verification } from "./verify";
+import { provenNeverIncluded, verifyOrder, type Verification } from "./verify";
+
+const FINAL = new Set<OrderStatus>(["paid", "failed", "expired", "payout_mismatch"]);
 
 export interface CheckResult extends Partial<Omit<Verification, "status">> {
   orderId: string;
@@ -126,21 +128,32 @@ export async function checkOrder(orderId: string, owner: string | undefined): Pr
     assertOwner(order, owner);
     const base = { orderId: order.id, txHash: order.txHash };
 
-    // Paid is final; never re-open or re-send it.
-    if (order.status === "paid") return { result: { ...base, status: order.status } };
+    // Final states are never re-opened or re-sent.
+    if (FINAL.has(order.status)) {
+      return { result: { ...base, status: order.status, detail: order.lastCheck?.detail } };
+    }
 
-    if (!order.txHash || !order.signedXdr) {
-      // A lost signing response is not proof that nothing happened, so the
-      // order is kept for recovery rather than replaced.
-      const expired = order.prepared && Date.parse(order.prepared.data.expiresAt) < Date.now();
-      const detail = expired
-        ? "Preparation expired with no saved signature. If your wallet may have signed, contact support with the order ID before paying again."
-        : "Not yet signed.";
-      return { result: { ...base, status: order.status, expired: Boolean(expired), detail } };
+    if (!order.signedXdr) {
+      // A lost signing response is not proof that nothing happened, so an
+      // unsigned order is released only once the chain proves it can never run.
+      if (await provenNeverIncluded(order)) {
+        const detail = "This payment was never sent and has expired. No funds moved.";
+        return {
+          order: { ...order, status: "expired", lastCheck: { at: new Date().toISOString(), status: "NOT_FOUND", detail } },
+          result: { ...base, status: "expired", expired: true, detail },
+        };
+      }
+      return {
+        result: {
+          ...base,
+          status: order.status,
+          detail: "Not signed yet. If you don't sign it, it expires within a few minutes and you can pay again.",
+        },
+      };
     }
 
     const verification = await verifyOrder(order);
-    const status = verification.status === "failed" || verification.status === "paid" ? verification.status : "pending_verification";
+    const status = FINAL.has(verification.status) ? verification.status : "pending_verification";
     return {
       order: {
         ...order,

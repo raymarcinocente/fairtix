@@ -1,5 +1,6 @@
 import "server-only";
 import { PaiflowApiError } from "@paiflow/sdk";
+import { TransactionBuilder } from "@stellar/stellar-sdk";
 import { getDeployment } from "./client";
 import { expectedPayouts, formatXlm, getPaiflowConfig } from "./config";
 import type { Order, OrderStatus } from "./orders";
@@ -43,6 +44,24 @@ async function nativeTransfers(txHash: string) {
   return { credited, debited };
 }
 
+// Ledger close times can trail wall-clock time slightly.
+const TIME_BOUNDS_GRACE_S = 60;
+
+/**
+ * True only when the prepared transaction can never execute: its time bounds
+ * have passed and the chain has no record of its hash. Anything uncertain
+ * (no time bounds, Horizon unavailable) returns false and keeps the order.
+ */
+export async function provenNeverIncluded(order: Order): Promise<boolean> {
+  if (!order.prepared || !order.txHash) return false;
+  const { xdr, networkPassphrase } = order.prepared.data;
+  const tx = TransactionBuilder.fromXDR(xdr, networkPassphrase);
+  const maxTime = Number(("timeBounds" in tx && tx.timeBounds?.maxTime) || 0);
+  if (!maxTime || Date.now() / 1000 < maxTime + TIME_BOUNDS_GRACE_S) return false;
+  const res = await fetch(`${HORIZON_TESTNET}/transactions/${order.txHash}`, { cache: "no-store" });
+  return res.status === 404;
+}
+
 /**
  * Receipt verifier: the order is paid only when Paiflow reports SUCCESS for the
  * original hash AND chain evidence shows the payer, exact amount and both payouts.
@@ -84,9 +103,11 @@ export async function verifyOrder(order: Order): Promise<Verification> {
   const paid = transfers.debited.get(order.walletAddress) ?? 0n;
   const payouts = { shop: formatXlm(shop), community: formatXlm(community) };
 
+  // Horizon ingests a transaction and its effects together, so once SUCCESS
+  // effects are readable a mismatch is final, not a lag.
   if (paid !== amount || shop !== expected.shop || community !== expected.community) {
     return {
-      status: "pending_verification",
+      status: "payout_mismatch",
       chainStatus,
       payouts,
       detail:

@@ -22,7 +22,17 @@ export type PaymentReview = {
 
 export type PaymentResult = {
   orderId: string;
-  status: "created" | "prepared" | "submitted" | "paid" | "failed" | "pending_verification";
+  status:
+    | "created"
+    | "prepared"
+    | "submitted"
+    | "paid"
+    | "failed"
+    | "pending_verification"
+    | "expired"
+    | "payout_mismatch"
+    // The server no longer has this order (demo storage was reset).
+    | "not_found";
   txHash?: string;
   detail?: string;
   warning?: string;
@@ -38,8 +48,15 @@ async function post<T>(action: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok && res.status !== 202) throw new Error(json.error ?? "Unable to reach checkout. Your order is kept.");
+  if (!res.ok && res.status !== 202)
+    throw new CheckoutError(json.error ?? "Unable to reach checkout. Your order is kept.", res.status);
   return json as T;
+}
+
+class CheckoutError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+  }
 }
 
 export async function connectFreighter(): Promise<string> {
@@ -76,11 +93,18 @@ export async function signAndSubmitBookingPayment(review: PaymentReview, address
 }
 
 export async function checkBookingPayment(orderId: string): Promise<PaymentResult> {
-  return settle(await post<PaymentResult>("check", { orderId }));
+  try {
+    return settle(await post<PaymentResult>("check", { orderId }));
+  } catch (e) {
+    if (e instanceof CheckoutError && e.status === 404) return settle({ orderId, status: "not_found" });
+    throw e;
+  }
 }
 
+const FINAL: PaymentResult["status"][] = ["paid", "failed", "expired", "payout_mismatch", "not_found"];
+
 function settle(result: PaymentResult): PaymentResult {
-  if (result.status === "paid" || result.status === "failed") clearPending();
+  if (FINAL.includes(result.status)) clearPending();
   return result;
 }
 

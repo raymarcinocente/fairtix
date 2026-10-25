@@ -18,7 +18,11 @@ export type OrderStatus =
   | "submitted"
   | "paid"
   | "failed"
-  | "pending_verification";
+  | "pending_verification"
+  /** Never signed, and its time bounds have passed with no chain record: it can never execute. */
+  | "expired"
+  /** Succeeded on chain, but payer/payouts differ from the configured split. Final; needs support. */
+  | "payout_mismatch";
 
 export interface Order {
   id: string;

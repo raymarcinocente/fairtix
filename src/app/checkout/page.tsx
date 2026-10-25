@@ -125,7 +125,7 @@ export default function CheckoutPage() {
     run(async () => {
       const checked = await post<Result>("/api/checkout/check", { orderId });
       setResult(checked);
-      if (checked.status === "paid" || checked.status === "failed") {
+      if (["paid", "failed", "expired", "payout_mismatch"].includes(checked.status)) {
         storage("remove");
       }
     });
@@ -190,7 +190,12 @@ export default function CheckoutPage() {
       {result && (
         <section className="flex flex-col gap-2 rounded-lg border border-zinc-200 p-4 text-sm dark:border-zinc-800">
           <h2 className="font-semibold">
-            {result.status === "paid" ? "Payment verified" : result.status === "failed" ? "Payment failed" : "Payment pending verification"}
+            {{
+              paid: "Payment verified",
+              failed: "Payment failed",
+              expired: "Payment expired unsent",
+              payout_mismatch: "Paid, but payouts didn't match the split",
+            }[result.status] ?? "Payment pending verification"}
           </h2>
           {result.warning && <p className="text-amber-600">{result.warning}</p>}
           {result.detail && <p className="text-zinc-500">{result.detail}</p>}

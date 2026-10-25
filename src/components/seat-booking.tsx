@@ -79,6 +79,7 @@ export default function SeatBooking({
   const [review, setReview] = useState<PaymentReview | null>(null);
   const [consent, setConsent] = useState(false);
   const [payment, setPayment] = useState<PaymentResult | null>(null);
+  const [attempted, setAttempted] = useState(false);
   const [pending, setPending] = useState(() => {
     const saved = typeof window === "undefined" ? null : pendingPayment();
     return saved?.eventId === concert.id ? saved.orderId : null;
@@ -186,9 +187,22 @@ export default function SeatBooking({
     }
     setStage("checkout");
   }
+  // Leaving before any signing attempt drops the unsigned preparation, so it
+  // doesn't block the next payment. After an attempt it must be checked instead.
+  function discardUnsigned() {
+    if (!review || attempted) return;
+    clearPending();
+    setPending(null);
+    setReview(null);
+  }
+  function close() {
+    discardUnsigned();
+    onClose();
+  }
   // Step 2: after explicit consent, Freighter signs and the server submits.
   async function pay() {
     if (!review || !freighter || !consent) return;
+    setAttempted(true);
     setStage("processing");
     setProgress(1);
     setError("");
@@ -223,12 +237,20 @@ export default function SeatBooking({
       setStage("confirmed");
       return;
     }
-    if (result.status === "failed") {
+    const settled = {
+      failed: `The payment failed${result.detail ? `: ${result.detail}` : ""}. No booking was created.`,
+      payout_mismatch: `Your payment went through (transaction ${result.txHash?.slice(0, 12)}…), but the payouts didn't match FairTix's 90/10 split, so no ticket was issued. Contact the organizer with this transaction for a refund. Don't pay again for these seats.`,
+      expired: "Your previous payment was never sent and has expired. No funds moved. You can pay now.",
+      not_found: "Your previous payment record is no longer available. Check your Freighter history before paying again.",
+    }[result.status as string];
+    if (settled) {
       setPending(null);
       setReview(null);
-      setError(
-        `The payment failed${result.detail ? `: ${result.detail}` : ""}. No booking was created.`,
-      );
+      setPayment(null);
+      setAttempted(false);
+      setError(settled);
+    } else if (result.detail && !result.txHash) {
+      setError(result.detail);
     }
     setStage(back);
   }
@@ -239,7 +261,7 @@ export default function SeatBooking({
       aria-label="Choose concert seats and checkout"
       onCancel={(e) => {
         if (stage === "processing") e.preventDefault();
-        else onClose();
+        else close();
       }}
     >
       <div className="seat-dialog-heading">
@@ -259,7 +281,7 @@ export default function SeatBooking({
           type="button"
           className="cinema-icon-button"
           aria-label="Close seat selection"
-          onClick={onClose}
+          onClick={close}
           disabled={stage === "processing"}
         >
           <CinemaIcon name="close" />
@@ -715,13 +737,7 @@ export default function SeatBooking({
                     className="button quiet full"
                     disabled={stage === "processing" || !!payment}
                     onClick={() => {
-                      // Nothing was signed yet, so dropping the unsigned
-                      // preparation is safe.
-                      if (review) {
-                        clearPending();
-                        setPending(null);
-                        setReview(null);
-                      }
+                      discardUnsigned();
                       setStage("seats");
                     }}
                   >
