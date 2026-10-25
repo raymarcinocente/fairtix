@@ -5,6 +5,7 @@ import { useDemo, wallets, connect } from "@/lib/demo-store";
 import { concerts } from "@/lib/concerts";
 import { refreshRecords } from "@/lib/customer-records";
 import CurrencyConverter from "./currency-converter";
+import WalletBalances from "./wallet-balances";
 
 export default function PrototypeAccount({
   section = "overview",
@@ -48,7 +49,7 @@ export default function PrototypeAccount({
               ? `${wallet.name}’s sample wallet · ${wallet.address}`
               : "No wallet connected."}
           </p>
-          <p>Sample balance: {data.balance.toFixed(2)} XLM</p>
+          <WalletBalances />
           <button className="button secondary" onClick={onWallet}>
             {wallet ? "Change Wallet" : "Connect Wallet"}
           </button>
@@ -87,14 +88,16 @@ export default function PrototypeAccount({
           <div className="account-bookings">
             {[...data.transactions].reverse().map((t) => (
               <article key={t.id}>
-                <h3>{concerts.find((c) => c.id === t.eventId)?.title}</h3>
+                <h3>{t.kind === "wallet conversion" ? "Wallet Conversion" : concerts.find((c) => c.id === t.eventId)?.title}</h3>
+                {t.kind === "wallet conversion" && <p>{t.sourceAmount} {t.sourceCurrency} → {t.amount.toFixed(7)} {t.currency} · {wallets.find((wallet) => wallet.id === t.wallet)?.name || "Sample wallet"}</p>}
+                {t.fundingMethod && <p>{t.fundingMethod === "gcash" ? "GCash" : "Mastercard"} · Demo payment</p>}
                 <p>
                   {t.kind} · {t.amount.toFixed(2)} {t.currency} · Simulated
                   payment
                 </p>
                 <p>{new Date(t.createdAt).toLocaleString()}</p>
                 <p className="mono">{t.reference}</p>
-                <Link href="/tickets">View Ticket</Link>
+                {t.kind !== "wallet conversion" && <Link href="/tickets">View Ticket</Link>}
               </article>
             ))}
           </div>

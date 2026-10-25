@@ -21,7 +21,7 @@ import {
   type VenueLayout,
 } from "./seating-data";
 
-type Visitor = Account & { balance: number };
+type Visitor = Account & { balance: number; usdcBalance?: number };
 export type Database = {
   resaleListings: StoredResaleListing[];
   resaleSeeded: boolean;

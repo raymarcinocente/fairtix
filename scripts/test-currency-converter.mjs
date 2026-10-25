@@ -8,6 +8,8 @@ try {
  const converter=page.getByRole('region',{name:'Currency converter'});
  await converter.getByLabel('Amount',{exact:true}).fill('10.93');
  await expect(converter.locator('.conversion-results')).toContainText('XLM1');
+ await expect(converter.getByLabel('Currency',{exact:true})).toBeDisabled();
+ await converter.getByRole('radio',{name:/Mastercard/}).check();
  await converter.getByLabel('Currency',{exact:true}).selectOption('USD');
  await converter.getByLabel('Amount',{exact:true}).fill('0.17');
  await expect(converter.locator('.conversion-results')).toContainText('XLM1');

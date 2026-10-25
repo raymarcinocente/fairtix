@@ -1,6 +1,7 @@
 import { NextRequest, connection } from "next/server";
 import { randomUUID } from "node:crypto";
 import { publicResale, restoreResale } from "@/lib/resale-service";
+import { demoExchangeRates, fiatCurrencies, type CryptoCurrency, type FiatCurrency } from "@/lib/exchange-rates";
 import {
   ApiError,
   apiUser,
@@ -79,6 +80,7 @@ export async function GET(request: NextRequest, context: Context) {
           .filter((t) => t.customerId === account.id)
           .map(publicRecord),
         balance: account.balance,
+        usdcBalance: account.usdcBalance || 0,
         ownResale: db.resaleListings
           .filter((listing) => listing.sellerId === account.id && listing.status === "listed")
           .map(({ id, bookingId, price }) => ({ id, bookingId, price })),
@@ -210,7 +212,36 @@ async function mutate(request: NextRequest, context: Context) {
         db,
         action.startsWith("organizer/") || action === "scan",
       );
-      if (action === "resale/list") {
+      if (action === "wallet/convert") {
+        if (!user.wallet) throw new ApiError("Connect a sample wallet before converting.");
+        if (body.paymentMode !== "demo") throw new ApiError("Only simulated conversions are available.");
+        if (body.fundingMethod !== "gcash" && body.fundingMethod !== "mastercard")
+          throw new ApiError("Choose GCash or Mastercard in demo mode.");
+        if (body.fundingMethod === "gcash" && body.currency !== "PHP")
+          throw new ApiError("GCash demo payments use PHP.");
+        if (typeof body.amount !== "number" || !Number.isFinite(body.amount) || body.amount <= 0 || body.amount > 1000000 || !fiatCurrencies.includes(body.currency as FiatCurrency) || (body.asset !== "USDC" && body.asset !== "XLM") || typeof body.requestId !== "string" || !/^[a-f0-9-]{36}$/i.test(body.requestId))
+          throw new ApiError("Enter an amount between 0 and 1,000,000 and choose a supported currency.");
+        const previous = db.transactions.find((t) => t.customerId === user.id && t.kind === "wallet conversion" && t.reference === body.requestId);
+        if (previous) {
+          if (previous.sourceAmount !== body.amount || previous.sourceCurrency !== body.currency || previous.currency !== body.asset || previous.wallet !== user.wallet || previous.fundingMethod !== body.fundingMethod)
+            throw new ApiError("This conversion reference was already used.", 409);
+          result = { credited: previous.amount, asset: previous.currency };
+        } else {
+          const rate = demoExchangeRates.rates[body.asset as CryptoCurrency][body.currency as FiatCurrency];
+          const credited = Math.round((body.amount / rate) * 10000000) / 10000000;
+          if (credited <= 0) throw new ApiError("The amount is too small to convert.");
+          if (body.asset === "XLM") user.balance = Math.round((user.balance + credited) * 10000000) / 10000000;
+          else user.usdcBalance = Math.round(((user.usdcBalance || 0) + credited) * 10000000) / 10000000;
+          db.transactions.push({
+            id: randomUUID(), reference: body.requestId, customerId: user.id,
+            eventId: "wallet", kind: "wallet conversion", amount: credited,
+            currency: body.asset, sourceAmount: body.amount, sourceCurrency: body.currency,
+            fundingMethod: body.fundingMethod,
+            wallet: user.wallet, createdAt: new Date().toISOString(),
+          });
+          result = { credited, asset: body.asset };
+        }
+      } else if (action === "resale/list") {
         const booking = db.bookings.find((b) => b.id === body.bookingId && b.customerId === user.id);
         const ticket = booking?.lineItems?.find((ticket) => ticket.id === body.seatId);
         if (!booking || !ticket) throw new ApiError("Choose a ticket from My Tickets.", 404);
@@ -677,6 +708,7 @@ async function mutate(request: NextRequest, context: Context) {
           (t) => t.customerId !== user.id,
         );
         user.balance = 10;
+        user.usdcBalance = 0;
         result = { ok: true };
       } else throw new ApiError("Not found.", 404);
     }

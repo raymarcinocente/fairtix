@@ -169,6 +169,42 @@
   background: #100d1666;
   min-width: 0;
 }
+.wallet-balances {
+  margin-block: 20px;
+  padding: 18px;
+  border: 1px solid #ffffff20;
+  border-radius: 12px;
+  background: #100d16;
+}
+.wallet-balances h3 {
+  font-size: 17px;
+  font-weight: 500;
+  margin: 0 0 16px;
+}
+.wallet-balances dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+}
+.wallet-balances dt {
+  color: #c4b8cf;
+  font-size: 12px;
+  margin-bottom: 7px;
+}
+.wallet-balances dd {
+  margin: 0;
+  font-size: clamp(18px, 2vw, 24px);
+  font-weight: 500;
+  color: #fff;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.wallet-balances p {
+  color: #b3a8bd;
+  font-size: 11px;
+  margin: 12px 0 0;
+}
 .currency-converter h3 {
   margin: 0 0 14px;
   font-size: 17px;
@@ -178,6 +214,45 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(80px, 0.65fr);
   gap: 12px;
+}
+.conversion-funding {
+  border: 0;
+  padding: 0;
+  margin: 0 0 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+.conversion-funding legend {
+  font-size: 12px;
+  color: #c4b8cf;
+  margin-bottom: 10px;
+}
+.conversion-funding label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #ffffff25;
+  border-radius: 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.conversion-funding label.selected {
+  border-color: #ffcc30;
+  background: #ffcc3010;
+}
+.conversion-funding input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #ffcc30;
+}
+.conversion-funding small {
+  color: #b3a8bd;
+  font-size: 10px;
 }
 .conversion-inputs label {
   display: grid;
@@ -203,6 +278,9 @@
   display: grid;
   gap: 10px;
   margin-top: 16px;
+}
+.conversion-credit {
+  margin-top: 18px;
 }
 .conversion-results > div {
   display: flex;

@@ -3,7 +3,11 @@ export type Transaction = {
   id: string;
   reference: string;
   eventId: string;
-  kind: "purchase" | "resale purchase" | "resale sale";
+  kind: "purchase" | "resale purchase" | "resale sale" | "wallet conversion";
+  sourceAmount?: number;
+  sourceCurrency?: string;
+  fundingMethod?: "gcash" | "mastercard";
+  wallet?: string;
   amount: number;
   currency: "XLM" | "USDC";
   createdAt: string;

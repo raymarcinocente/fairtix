@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import ResaleMarket from "./resale-market";
 import CurrencyConverter from "./currency-converter";
+import WalletBalances from "./wallet-balances";
 import { CinemaHeader, CinemaHome, CinemaBrowse } from "./cinema";
 import {
   ConcertDetail,
@@ -867,6 +868,7 @@ function FairTixView({
           <p className="modal-intro">
             Choose a sample wallet. No Freighter connection is required.
           </p>
+          <WalletBalances />
           <div className="wallet-options">
             {wallets.map((w) => (
               <button
@@ -892,7 +894,7 @@ function FairTixView({
                 <span>
                   <strong>{w.name}’s sample wallet</strong>
                   <small className="mono">
-                    {w.address} · {state.balances[w.id].toFixed(2)} XLM
+                    {w.address}
                   </small>
                 </span>
                 <Icon name={state.wallet === w.id ? "check" : "arrow"} />

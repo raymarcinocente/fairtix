@@ -13,6 +13,7 @@ import { VenueMap, useSeatingClock } from "./seating-map";
 import { CinemaIcon } from "./cinema";
 import { BookingSeatDetails } from "./seat-booking";
 import CurrencyConverter from "./currency-converter";
+import WalletBalances from "./wallet-balances";
 
 export default function ResaleCheckout({
   listing,
@@ -301,7 +302,7 @@ export default function ResaleCheckout({
                     </button>
                   )}
                 </div>
-                {stage !== "processing" && <CurrencyConverter total={total} />}
+                {stage !== "processing" && <><WalletBalances /><CurrencyConverter total={total} /></>}
                 <p className="demo-payment-warning">
                   Payment is simulated. No funds are transferred and no
                   blockchain transaction is created.

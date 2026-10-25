@@ -21,6 +21,7 @@ type Records = {
   bookings: ShowcaseBooking[];
   inventory: { eventId: string; seats: string[] }[];
   balance: number;
+  usdcBalance: number;
   history: { id: string; ok: boolean; message: string }[];
 };
 const initial: Records = {
@@ -37,6 +38,7 @@ const initial: Records = {
   bookings: [],
   inventory: [],
   balance: 10,
+  usdcBalance: 0,
   history: [],
 };
 let state = initial;
@@ -103,7 +105,7 @@ export async function refreshRecords() {
           ? demoApi<
               Pick<
                 Records,
-                "bookings" | "tickets" | "balance" | "history" | "transactions" | "ownResale"
+                "bookings" | "tickets" | "balance" | "usdcBalance" | "history" | "transactions" | "ownResale"
               >
             >("records")
           : Promise.resolve({
@@ -112,6 +114,7 @@ export async function refreshRecords() {
               bookings: [],
               tickets: [],
               balance: 10,
+              usdcBalance: 0,
               history: [],
             }));
         if (run !== generation || currentAccount()?.id !== user?.id) return;

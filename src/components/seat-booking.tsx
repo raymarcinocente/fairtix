@@ -22,6 +22,7 @@ import { SectionSeats, useSeatingClock, VenueMap } from "./seating-map";
 import { demoApi, useAuth } from "@/lib/auth-client";
 import { refreshRecords } from "@/lib/customer-records";
 import CurrencyConverter from "./currency-converter";
+import WalletBalances from "./wallet-balances";
 
 const money = (n: number) => n.toFixed(2);
 export function BookingSeatDetails({ items }: { items: SeatTicket[] }) {
@@ -372,7 +373,7 @@ export default function SeatBooking({
                     </button>
                   )}
                 </div>
-                {stage !== "processing" && <CurrencyConverter total={total} />}
+                {stage !== "processing" && <><WalletBalances /><CurrencyConverter total={total} /></>}
                 <div className="payment-status-list">
                   {[
                     "Wallet Connection",
