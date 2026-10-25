@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useDemo, wallets, connect } from "@/lib/demo-store";
 import { concerts } from "@/lib/concerts";
 import { refreshRecords } from "@/lib/customer-records";
+import CurrencyConverter from "./currency-converter";
 
 export default function PrototypeAccount({
   section = "overview",
@@ -73,6 +74,7 @@ export default function PrototypeAccount({
           <p className="field-help">
             Payments are simulated. No real funds are transferred.
           </p>
+          <CurrencyConverter />
         </section>
       )}
       <section className="account-panel">

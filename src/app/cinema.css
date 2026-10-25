@@ -2139,6 +2139,7 @@ option {
 }
 .payment-wallet {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 14px;
   padding: 19px 0;
@@ -2150,6 +2151,7 @@ option {
 }
 .payment-wallet > div {
   flex: 1;
+  min-width: 130px;
 }
 .payment-wallet strong {
   display: block;

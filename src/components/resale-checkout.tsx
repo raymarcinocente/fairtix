@@ -12,6 +12,7 @@ import { sectionSeats, seatLabel } from "@/lib/seating-data";
 import { VenueMap, useSeatingClock } from "./seating-map";
 import { CinemaIcon } from "./cinema";
 import { BookingSeatDetails } from "./seat-booking";
+import CurrencyConverter from "./currency-converter";
 
 export default function ResaleCheckout({
   listing,
@@ -290,16 +291,17 @@ export default function ResaleCheckout({
                       {wallet?.address || "Connect a wallet to continue."}
                     </span>
                   </div>
-                  {!wallet && (
+                  {stage !== "processing" && (
                     <button
                       type="button"
                       className="button secondary compact"
                       onClick={onWallet}
                     >
-                      Connect
+                      {wallet ? "Use Another Wallet" : "Connect"}
                     </button>
                   )}
                 </div>
+                {stage !== "processing" && <CurrencyConverter total={total} />}
                 <p className="demo-payment-warning">
                   Payment is simulated. No funds are transferred and no
                   blockchain transaction is created.

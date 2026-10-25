@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import ResaleMarket from "./resale-market";
+import CurrencyConverter from "./currency-converter";
 import { CinemaHeader, CinemaHome, CinemaBrowse } from "./cinema";
 import {
   ConcertDetail,
@@ -898,6 +899,7 @@ function FairTixView({
               </button>
             ))}
           </div>
+          <CurrencyConverter />
           {walletBusy && <p role="status">Connecting sample wallet…</p>}
           {walletError && <p role="alert">{walletError}</p>}
           {wallet && (
@@ -990,6 +992,7 @@ function FairTixView({
                   <strong>1 XLM</strong>
                 </div>
               </div>
+              <CurrencyConverter total={PRICE} asset="XLM" />
               <div className="inline-note">
                 <Icon name="globe" />
                 <p>

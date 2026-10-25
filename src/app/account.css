@@ -161,6 +161,72 @@
 .account-menu {
   position: relative;
 }
+.currency-converter {
+  margin-top: 22px;
+  padding: 18px;
+  border: 1px solid #ffffff18;
+  border-radius: 12px;
+  background: #100d1666;
+  min-width: 0;
+}
+.currency-converter h3 {
+  margin: 0 0 14px;
+  font-size: 17px;
+  font-weight: 500;
+}
+.conversion-inputs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(80px, 0.65fr);
+  gap: 12px;
+}
+.conversion-inputs label {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  font-size: 12px;
+  color: #c4b8cf;
+}
+.conversion-inputs input,
+.conversion-inputs select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px;
+  border: 1px solid #ffffff25;
+  border-radius: 8px;
+  background: #100d16;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+}
+.conversion-results {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+.conversion-results > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+.currency-converter .conversion-note {
+  margin-top: 12px;
+  color: #b3a8bd;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.currency-converter .conversion-order {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.conversion-note a,
+.conversion-retry {
+  color: #ffcc30;
+  text-decoration: underline;
+}
 .account-menu summary {
   list-style: none;
   cursor: pointer;

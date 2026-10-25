@@ -21,6 +21,7 @@ import { CinemaIcon } from "./cinema";
 import { SectionSeats, useSeatingClock, VenueMap } from "./seating-map";
 import { demoApi, useAuth } from "@/lib/auth-client";
 import { refreshRecords } from "@/lib/customer-records";
+import CurrencyConverter from "./currency-converter";
 
 const money = (n: number) => n.toFixed(2);
 export function BookingSeatDetails({ items }: { items: SeatTicket[] }) {
@@ -361,16 +362,17 @@ export default function SeatBooking({
                       {wallet?.address || "Connect a wallet to continue."}
                     </span>
                   </div>
-                  {!wallet && (
+                  {stage !== "processing" && (
                     <button
                       type="button"
                       className="button secondary compact"
                       onClick={onWallet}
                     >
-                      Connect
+                      {wallet ? "Use Another Wallet" : "Connect"}
                     </button>
                   )}
                 </div>
+                {stage !== "processing" && <CurrencyConverter total={total} />}
                 <div className="payment-status-list">
                   {[
                     "Wallet Connection",
