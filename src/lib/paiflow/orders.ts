@@ -3,12 +3,13 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ApiResponse, ExecutePrepared } from "@paiflow/sdk";
+import { DATA_DIR } from "../data-dir";
 
 // DEVELOPMENT ONLY: a file-per-order JSON store with an in-process lock.
 // Replace with a durable database and row/advisory locks before production.
 // Orders hold signed envelopes, so the directory must stay access-restricted
 // and out of git (.data/ is ignored).
-const DIR = path.join(process.cwd(), ".data", "orders");
+const DIR = path.join(DATA_DIR, "orders");
 
 export type OrderStatus =
   | "created"

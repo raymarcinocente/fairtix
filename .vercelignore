@@ -1,0 +1,7 @@
+# Never upload local secrets or data; Paiflow settings go in Vercel env vars.
+.env*
+.data
+.next
+node_modules
+# The project installs with pnpm; keep Vercel from detecting npm.
+package-lock.json

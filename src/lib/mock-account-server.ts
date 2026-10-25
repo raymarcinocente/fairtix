@@ -14,6 +14,7 @@ import type { ShowcaseBooking } from "./showcase-store";
 import type { Ticket } from "./demo-store";
 import type { StoredResaleListing } from "./resale-types";
 import { seedResale } from "./resale-service";
+import { DATA_DIR } from "./data-dir";
 import {
   eventSeatingDefaults,
   venueDefaults,
@@ -40,7 +41,7 @@ export type Database = {
   }[];
   history: { customerId: string; id: string; ok: boolean; message: string }[];
 };
-const dir = path.join(process.cwd(), ".data");
+const dir = DATA_DIR;
 const file = path.join(dir, "mock-accounts.json");
 export const SESSION_COOKIE = "fairtix_prototype";
 export class ApiError extends Error {
