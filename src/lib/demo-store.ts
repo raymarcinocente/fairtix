@@ -7,9 +7,15 @@ export type Ticket = {
   status: "valid" | "listed" | "redeemed";
   price: number | null;
 };
+const sampleWallet = (id: string, name: string, publicKey: string) => ({
+  id,
+  name,
+  publicKey,
+  address: `${publicKey.slice(0, 4)}…${publicKey.slice(-4)}`,
+});
 export const wallets = [
-  { id: "ana", name: "Ana", address: "GABC…7XQ2" },
-  { id: "ben", name: "Ben", address: "GDEF…9KM4" },
+  sampleWallet("ana", "Ana", "GDTP7VRHF37U6ZQS6TLENXGUNXHNFAQGKBB7WYPRFZLDLACQV5CVWZ5C"),
+  sampleWallet("ben", "Ben", "GB4MT4IXWZJ555CJAW2HZHF43YNCUVSBBX5SDHDFUL6MRHDHEACAWVVU"),
 ];
 export const PRICE = 1,
   CAP = 1.1,

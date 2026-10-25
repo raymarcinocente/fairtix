@@ -20,7 +20,7 @@ try {
  await page.getByRole('button',{name:/Ana.s sample wallet/}).click();
  await expect(page.getByRole('heading',{name:'Connect Wallet',exact:true})).toHaveCount(0);
  await expect(page.getByRole('heading',{name:'Checkout',exact:true})).toBeVisible();
- await expect(page.getByText(/GABC.*7XQ2/)).toBeVisible();
+ await expect(page.getByText(/GDTP.*WZ5C/)).toBeVisible();
  console.log('PASS sample wallet connects during pending initialization and preserves checkout');
  release();
  const session=await page.evaluate(()=>sessionStorage.getItem('fairtix-seating-v1'));
