@@ -1679,3 +1679,40 @@
     transform: none;
   }
 }
+
+.resale-catalog .sample-resale-image { width:100%; padding:0; border:0; cursor:pointer; }
+.resale-title-link { background:none; border:0; padding:0; color:inherit; font:inherit; text-align:left; cursor:pointer; }
+.resale-title-link:hover { color:#ffcc30; }
+.resale-ticket-facts { display:grid; gap:12px; margin-bottom:16px; }
+.resale-ticket-facts p { display:flex; align-items:center; gap:10px; font-size:15px; color:#e6daef; font-weight:500; }
+.resale-fixed-note { font-size:12px!important; color:#bca9c9!important; line-height:1.7; margin-bottom:18px; }
+.resale-readonly-map .venue-zone:disabled { opacity:.4; cursor:default; transform:none; }
+.resale-readonly-map .venue-zone.active:disabled { opacity:1; }
+.resale-readonly-map .venue-category-legend strong { display:none; }
+.resale-readonly-map .venue-zone:hover:not(.active) { filter:none; box-shadow:none; }
+.resale-seat-location { margin-top:22px; padding:22px; border:1px solid #ffffff18; border-radius:16px; background:#14101b; }
+.resale-seat-location h3 { font-size:20px; color:var(--zone-color); }
+.resale-seat-location > p { font-size:12px; color:#bfaacb; margin:12px 0; line-height:1.7; }
+.resale-seat-rows { overflow:auto; padding:16px 2px; scrollbar-width:thin; }
+.resale-stage-direction { display:block; font-size:11px; text-align:center; color:#ac97ba; margin-bottom:20px; }
+.resale-seat-row { display:flex; align-items:center; gap:12px; margin-bottom:10px; width:max-content; min-width:100%; }
+.resale-seat-row > span { color:#9d88ac; min-width:18px; font-size:12px; }
+.resale-seat-row > div { display:flex; gap:8px; }
+.resale-static-seat { display:flex; align-items:center; justify-content:center; position:relative; height:34px; width:34px; border:1px solid #ffffff20; color:#82738f; border-radius:8px 8px 4px 4px; font-size:11px; }
+.resale-static-seat.ticket-seat { background:var(--zone-color); color:#100c16; border-color:var(--zone-color); box-shadow:0 0 18px color-mix(in srgb,var(--zone-color) 25%,transparent); font-weight:700; }
+.resale-static-seat i { position:absolute; top:-9px; right:-5px; width:16px; height:16px; border-radius:50%; background:#fff; color:#17101e; text-align:center; font-style:normal; font-size:10px; line-height:16px; }
+.resale-location-key { display:flex; align-items:center; gap:8px; }
+.resale-location-key i { width:10px; height:10px; border-radius:3px; background:var(--zone-color); flex-shrink:0; }
+.resale-fixed-summary { margin:22px 0; padding:16px; border:1px solid #ffffff14; border-radius:12px; }
+.resale-fixed-summary strong { color:#ffcc30; font-size:13px; }
+.resale-fixed-summary p { font-size:11px; color:#c0accd; margin-top:9px; line-height:1.6; }
+.resale-checkout-dialog .venue-order-summary { position:sticky; top:0; }
+.resale-checkout-dialog .button:disabled { cursor:default; }
+@media(max-width:759px){
+  .resale-checkout-dialog .venue-order-summary { position:relative; top:auto; }
+  .resale-checkout-dialog .venue-summary-details .resale-fixed-summary { margin:12px 0; padding:12px; }
+  .resale-seat-location { padding:18px 14px; }
+  .resale-ticket-facts p { font-size:12px; align-items:flex-start; }
+  .resale-ticket-facts svg { flex-shrink:0; }
+  .resale-checkout-dialog .venue-summary-footer > .button.quiet { grid-column:2; font-size:10px; margin:8px 0 0; padding:6px; }
+}

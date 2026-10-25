@@ -6,7 +6,9 @@ import type { ShowcaseBooking } from "./showcase-store";
 import { applyServerSeating } from "./seating-store";
 import type { EventSeating, VenueLayout } from "./seating-data";
 import type { Transaction } from "./auth-types";
+import type { ResaleListing } from "./resale-types";
 type Records = {
+  resale: ResaleListing[];
   loading: boolean;
   error: string;
   transactions: Transaction[];
@@ -19,6 +21,7 @@ type Records = {
   history: { id: string; ok: boolean; message: string }[];
 };
 const initial: Records = {
+  resale: [],
   loading: true,
   error: "",
   transactions: [],
@@ -66,7 +69,7 @@ export async function refreshRecords() {
   try {
     const [publicData, privateData] = await Promise.all([
       demoApi<
-        Pick<Records, "inventory" | "market" | "soldCount"> & {
+        Pick<Records, "inventory" | "market" | "soldCount" | "resale"> & {
           events: EventSeating[];
           venues: VenueLayout[];
         }

@@ -13,10 +13,7 @@ const base = process.env.BASE_URL || "http://localhost:3000";
         data,
         headers: { Origin: base },
       });
-    await call("auth/login", {
-      email: "organizer@fairtix.demo",
-      password: "DemoPass123!",
-    });
+    await call("prototype", {});
     await call("reset", {});
     await call("auth/wallet", { wallet: null });
     const errors = [];
@@ -70,14 +67,12 @@ const base = process.env.BASE_URL || "http://localhost:3000";
     await expect(page.locator(".venue-total")).toContainText("525.00 USDC");
     await page.getByRole("button", { name: "Continue to Checkout" }).click();
     await page.getByRole("button", { name: "Connect", exact: true }).click();
-    await page.getByRole("button", { name: /Ana’s demo wallet/ }).click();
+    await page.getByRole("button", { name: /Ana’s sample wallet/ }).click();
     await expect(page.locator(".venue-total")).toContainText("525.00 USDC");
     await page
-      .getByRole("button", { name: "Complete demo · 525.00 USDC" })
+      .getByRole("button", { name: "Complete Booking · 525.00 USDC" })
       .click();
-    await expect(
-      page.getByText("Your demo booking is confirmed."),
-    ).toBeVisible();
+    await expect(page.getByText("Your booking is confirmed.")).toBeVisible();
     await page
       .locator("dialog[open]")
       .getByRole("link", { name: "My Tickets", exact: true })
@@ -115,8 +110,8 @@ const base = process.env.BASE_URL || "http://localhost:3000";
     // The original XLM event, resale and entry rules remain intact.
     await page.goto(`${base}/event`);
     await page.getByRole("button", { name: "Buy ticket · 1 XLM" }).click();
-    await page.getByRole("button", { name: "Complete demo purchase" }).click();
-    await expect(page.getByText("Your demo ticket is ready.")).toBeVisible();
+    await page.getByRole("button", { name: "Complete Purchase" }).click();
+    await expect(page.getByText("Your ticket is ready.")).toBeVisible();
     await page
       .locator("dialog[open]")
       .getByRole("link", { name: "My Tickets", exact: true })
@@ -135,10 +130,9 @@ const base = process.env.BASE_URL || "http://localhost:3000";
     const originalTicket = await page.evaluate(
       async () => (await (await fetch("/api/demo/records")).json()).tickets[0],
     );
-    await call("auth/login", {
-      email: "ben@fairtix.demo",
-      password: "DemoPass123!",
-    });
+    const sellerCookies = await context.cookies();
+    await context.clearCookies();
+    await call("prototype", {});
     await call("reset", {});
     await page.goto(`${base}/account/wallet`);
     await page
@@ -146,7 +140,7 @@ const base = process.env.BASE_URL || "http://localhost:3000";
         name: /^(Change Demo Wallet|Connect Demo Wallet)$/,
       })
       .click();
-    await page.getByRole("button", { name: /Ben’s demo wallet/ }).click();
+    await page.getByRole("button", { name: /Ben’s sample wallet/ }).click();
     await page.goto(`${base}/market`);
     await page.getByRole("button", { name: "Buy for 1.1 XLM" }).click();
     await expect(
@@ -156,10 +150,7 @@ const base = process.env.BASE_URL || "http://localhost:3000";
     await expect(page.locator(".owned-ticket:visible")).toHaveCount(1);
     await page.getByRole("button", { name: "Show QR", exact: true }).click();
     await expect(page.locator("dialog[open] .qr-code svg")).toBeVisible();
-    await call("auth/login", {
-      email: "organizer@fairtix.demo",
-      password: "DemoPass123!",
-    });
+    await call("prototype", {});
     await page.goto(`${base}/scan`);
     await page.getByLabel("Ticket ID", { exact: true }).fill(originalTicket.id);
     await page.getByRole("button", { name: "Check ticket" }).click();
@@ -171,7 +162,7 @@ const base = process.env.BASE_URL || "http://localhost:3000";
       "already redeemed",
     );
     await page.reload();
-    await expect(page.locator(".history-item:visible")).toHaveCount(4);
+    await expect(page.locator(".history-item:visible")).toHaveCount(2);
     await page.getByLabel("Ticket ID", { exact: true }).fill("NOT-A-TICKET");
     await page.getByRole("button", { name: "Check ticket" }).click();
     await expect(page.locator(".scan-result:visible")).toContainText(
@@ -221,10 +212,9 @@ const base = process.env.BASE_URL || "http://localhost:3000";
       "NIGHTS",
     );
     await call("reset", {});
-    await call("auth/login", {
-      email: "ben@fairtix.demo",
-      password: "DemoPass123!",
-    });
+    await context.clearCookies();
+    await context.addCookies(sellerCookies);
+    await call("prototype", {});
     await call("reset", {});
     if (errors.length) throw new Error([...new Set(errors)].join("\n"));
     console.log(

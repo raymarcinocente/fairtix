@@ -31,10 +31,7 @@ try {
       data,
       headers: { Origin: base },
     });
-  await call("auth/login", {
-    email: "organizer@fairtix.demo",
-    password: "DemoPass123!",
-  });
+  await call("prototype", {});
   await call("reset", {});
   await call("auth/wallet", { wallet: null });
   initialConfig = await (
@@ -84,11 +81,11 @@ try {
   await expect(page.locator(".venue-total")).toContainText("225.75");
   await page.getByRole("button", { name: "Continue to Checkout" }).click();
   await page.getByRole("button", { name: "Connect", exact: true }).click();
-  await page.getByRole("button", { name: /Ana’s demo wallet/ }).click();
+  await page.getByRole("button", { name: /Ana’s sample wallet/ }).click();
   await page
-    .getByRole("button", { name: "Complete demo · 225.75 USDC" })
+    .getByRole("button", { name: "Complete Booking · 225.75 USDC" })
     .click();
-  await expect(page.getByText("Your demo booking is confirmed.")).toBeVisible();
+  await expect(page.getByText("Your booking is confirmed.")).toBeVisible();
   await expect(
     page.locator(".booking-complete .booking-seat-details"),
   ).toContainText("VIP Left · Row A · Seat 1");
@@ -112,8 +109,8 @@ try {
   await expect(
     page.locator(".showcase-ticket .booking-seat-details"),
   ).toContainText("VIP Left · Row A · Seat 1");
-  await page.goto(`${base}/account`);
-  await expect(page.locator(".account-panel").last()).toContainText(
+  await page.goto(`${base}/tickets`);
+  await expect(page.locator(".showcase-ticket")).toContainText(
     "General Admission Rear",
   );
   await open(page);
@@ -326,10 +323,12 @@ try {
       legacyPage.evaluate(() => localStorage.getItem("fairtix-showcase-v1")),
     )
     .toBeNull();
-  await legacyPage.getByLabel("Account menu", {exact:true}).click();
+  await legacyPage
+    .getByLabel("Tickets and wallet menu", { exact: true })
+    .click();
   await expect(
     legacyPage.getByRole("link", { name: "Sign In", exact: true }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await legacyContext.close();
   if (errors.length) throw new Error([...new Set(errors)].join("\n"));
   console.log(

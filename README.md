@@ -34,29 +34,27 @@ The UI smoke test expects a running development server. Override `BASE_URL` to t
 | `/tickets`                         | Original tickets and showcase booking passes with QR codes                    |
 | `/market`                          | Original capped XLM resale and ownership transfer                             |
 | `/scan`                            | Typed ticket ID check, single redemption, duplicate refusal                   |
-| `/profile`, `/account`             | Protected customer account, bookings, wallet, and transactions                |
+| `/profile`, `/account`             | Prototype wallet, bookings, and transactions without login                    |
 | `/organizer`                       | Local demo booking overview and simulated totals                              |
 | `/guide`                           | Original event walkthrough and planned Paiflow integration                    |
 
 Search is available in the header and mobile bottom navigation. Hearts save concerts locally. Carousel arrows disable at the ends. Reduced motion disables hero/poster animation.
 
-## Accounts and demo data
+## Prototype access and data
 
-See [AUTHENTICATION.md](AUTHENTICATION.md) for demo credentials, account routes, sessions, email verification/reset, wallet separation, private bookings, role checks, and the Node.js/SQL Server production boundary.
+FairTix does not require login or registration. Checkout, My Tickets, My Wallet, Transactions, organizer tools, and gate previews are accessible directly. The user menu contains ticket and wallet links, without sign-in or sign-out controls. Old authentication links redirect away and credential API endpoints are disabled. See [AUTHENTICATION.md](AUTHENTICATION.md) for the anonymous prototype storage boundary.
 
-Public browsing and seat selection are available without login. Checkout requires an account, preserves the five-minute reservation through login/registration, and revalidates it before booking. My Tickets and account routes are private; organizer and gate tools require a staff role.
+A random HttpOnly browser cookie keeps prototype purchases and wallet choices available after refresh. Separate browsers have separate ticket histories. Existing legacy account data is not exposed or reassigned. Payments, balances, and wallet connections are simulated; no real funds are transferred.
 
-The original event keeps its 1 XLM price, 1.1 XLM resale cap, and 50-ticket supply. Resale transfers ownership between authenticated accounts. USDC showcase checkout remains explicitly simulated. No real wallet signature, payment, payout, or transaction hash is created.
-
-Private records are stored by the local mock server in ignored .data/mock-accounts.json. Browser storage holds saved concert IDs, seating display configuration, and temporary holds. Legacy anonymous browser purchases are not assigned to new accounts without ownership evidence. Reset Demo clears only the signed-in account's purchases and restores that account's demo balance.
+The original event keeps its 1 XLM price, 1.1 XLM resale cap, and 50-ticket supply. The resale market includes five seeded prototype tickets from different concerts. Each has a seller-owned fixed seat or general admission section. Buyers review a read-only venue/seat visual, reserve the listing for five minutes, connect a sample wallet, and complete simulated checkout. The server transfers the existing ticket into the buyer’s My Tickets; no new seat selection is offered. The server stores records in ignored .data/mock-accounts.json. Reset Demo clears only the current browser's purchases and sample balance.
 
 ## Seating and validation
 
-Five illustrative venue layouts use VVIP, VIP, Gold, Silver, and General Admission categories with event-specific prices. Neon Nights and Midnight Echoes share Harbor Stage geometry while retaining separate inventory and pricing. Reservations last five minutes, including through login, with up to six tickets and a 5% service fee. Receipts preserve category, section, row, seat/admission unit, accessibility, and per-ticket price.
+Five illustrative venue layouts use VVIP, VIP, Gold, Silver, and General Admission categories with event-specific prices. Neon Nights and Midnight Echoes share Harbor Stage geometry while retaining separate inventory and pricing. Reservations last five minutes, including across page navigation, with up to six tickets and a 5% service fee. Receipts preserve category, section, row, seat/admission unit, accessibility, and per-ticket price.
 
-Organizer tools edit category names/colors/prices, section geometry/capacity, accessibility, blocked seats, and mixed-category policy. Server endpoints require a staff session and protect sold and reserved seats. Configuration is stored by the local server and synchronized to the UI. This mock uses a single-process write queue, not a distributed reservation system.
+Organizer tools edit category names/colors/prices, section geometry/capacity, accessibility, blocked seats, and mixed-category policy. Prototype organizer endpoints protect sold and reserved seats. Configuration is stored by the local server and synchronized to the UI. This mock uses a single-process write queue, not a distributed reservation system.
 
-Run npm run lint and npm run build. With the dev server running, npm run test:auth checks accounts and checkout access; npm run test:ui checks discovery, purchases/resale, QR entry, and responsive pages; npm run test:seating checks venue maps, selections, holds, organizer controls, expiry, and mobile layouts.
+Run npm run lint and npm run build. With the dev server running, npm run test:prototype checks direct checkout and anonymous browser storage; npm run test:ui checks discovery, purchases/resale, QR entry, and responsive pages; npm run test:resale checks fixed-seat resale, reservation conflicts, transfer and mobile layouts; npm run test:seating checks venue maps, selections, holds, organizer controls, expiry, and mobile layouts.
 
 ## Assets and references
 

@@ -17,16 +17,16 @@ export async function demoApi<T = Record<string, unknown>>(
     throw new Error(data.error || "Unable to complete this request.");
   return data;
 }
-// This adapter is the only authentication transport used by UI components.
-export interface AuthAdapter {
+// Anonymous prototype storage transport; no login or credentials.
+export interface PrototypeAdapter {
   session(): Promise<{ user: Account | null }>;
   action(
     action: string,
     body: unknown,
   ): Promise<{ user?: Account | null; message?: string }>;
 }
-export const mockAuthAdapter: AuthAdapter = {
-  session: () => demoApi("session"),
+export const prototypeAdapter: PrototypeAdapter = {
+  session: () => demoApi("prototype", {}),
   action: (action, body) => demoApi(`auth/${action}`, body),
 };
 const initial = {
@@ -56,7 +56,7 @@ function emit() {
 export async function refreshAuth() {
   const call = ++revision;
   try {
-    const result = await mockAuthAdapter.session();
+    const result = await prototypeAdapter.session();
     if (call !== revision) return;
     state = {
       user: result.user,
@@ -79,7 +79,7 @@ export async function refreshAuth() {
 }
 export async function accountAction(action: string, body: unknown = {}) {
   revision++;
-  const result = await mockAuthAdapter.action(action, body);
+  const result = await prototypeAdapter.action(action, body);
   if ("user" in result) {
     revision++;
     state = {

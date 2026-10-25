@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import ResaleMarket from "./resale-market";
 import { CinemaHeader, CinemaHome, CinemaBrowse } from "./cinema";
 import {
   ConcertDetail,
@@ -17,8 +18,7 @@ import {
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import QRCode from "react-qr-code";
 import { useAuth } from "@/lib/auth-client";
-import { useRouter } from "next/navigation";
-import { AccountContent } from "./account-pages";
+import PrototypeAccount from "./prototype-account";
 import { refreshRecords } from "@/lib/customer-records";
 import {
   buyTicket,
@@ -168,7 +168,7 @@ function EventArt() {
       />
       <div className="event-art-overlay" />
       <div className="event-art-type">
-        <span>Demo event · Iloilo City</span>
+        <span>Iloilo City</span>
         <strong>
           ILOILO
           <br />
@@ -243,7 +243,6 @@ function FairTixView({
   accountSection?: string;
 }) {
   const { user, ready } = useAuth();
-  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const state = useDemo();
   const showcase = useShowcase();
@@ -271,16 +270,6 @@ function FairTixView({
     "organizer",
     "scan",
   ].includes(view);
-  const denied =
-    ["organizer", "scan"].includes(view) && user?.role === "customer";
-  useEffect(() => {
-    if (!ready || !privateView) return;
-    if (!user)
-      router.replace(
-        `/login?returnTo=${encodeURIComponent(view === "account" && accountSection ? `/account/${accountSection}` : `/${view}`)}`,
-      );
-    else if (denied) router.replace("/account?access=denied");
-  }, [ready, privateView, user, denied, router, view, accountSection]);
   const mine = state.tickets;
   const market = state.market;
   async function attempt(action: () => unknown, success: string) {
@@ -297,10 +286,6 @@ function FairTixView({
   function startCheckout() {
     if (!ready) return;
     setMessage(null);
-    if (!user) {
-      router.push("/login?returnTo=%2Fevent%3Fcheckout%3D1");
-      return;
-    }
     if (!wallet) setWalletOpen(true);
     else setCheckout(true);
   }
@@ -367,10 +352,6 @@ function FairTixView({
                 <button
                   className="button primary compact"
                   onClick={() => {
-                    if (!user) {
-                      router.push("/login?returnTo=%2Fmarket");
-                      return;
-                    }
                     if (!wallet) setWalletOpen(true);
                     else
                       attempt(
@@ -423,7 +404,7 @@ function FairTixView({
       </article>
     );
   }
-  if (privateView && (!ready || !user || denied))
+  if (privateView && !ready)
     return (
       <main className="account-container">
         <p>Loading account…</p>
@@ -458,7 +439,7 @@ function FairTixView({
           view,
         ) && <CinemaBrowse view={view} />}
         {(view === "account" || view === "profile") && (
-          <AccountContent
+          <PrototypeAccount
             section={accountSection}
             onWallet={() => setWalletOpen(true)}
           />
@@ -486,7 +467,7 @@ function FairTixView({
               <div>
                 <EventArt />
                 <div className="event-description">
-                  <Badge tone="blue">Live music · Demo event</Badge>
+                  <Badge tone="blue">Live music</Badge>
                   <h1>Iloilo After Hours</h1>
                   <p className="large-copy"></p>
                   <div className="event-meta">
@@ -499,8 +480,8 @@ function FairTixView({
                   </div>
                   <h3>Event Details</h3>
                   <p>
-                    A demo live music event in Iloilo City. The date and venue
-                    have not been announced.
+                    Live music event in Iloilo City. The date and venue have not
+                    been announced.
                   </p>
                   <div className="inline-note">
                     <Icon name="shield" />
@@ -515,7 +496,7 @@ function FairTixView({
                 <div className="panel-heading">
                   <span className="eyebrow"></span>
                   <Badge tone="green">
-                    <span className="live-dot" /> Demo event
+                    <span className="live-dot" /> Tickets Available
                   </Badge>
                 </div>
                 <h2>General admission</h2>
@@ -561,11 +542,8 @@ function FairTixView({
                   are recorded by the local demo server.
                 </div>
                 <div className="demo-disclosure">
-                  <strong>Demo checkout</strong>
-                  <p>
-                    Demo balances only. No Freighter connection or Paiflow
-                    payment is made.
-                  </p>
+                  <strong>Payment Information</strong>
+                  <p>Payments are simulated. No funds are transferred.</p>
                 </div>
               </aside>
             </div>
@@ -598,9 +576,7 @@ function FairTixView({
                 <span>
                   {mine.length} {mine.length === 1 ? "ticket" : "tickets"}
                 </span>
-                <span className="mono">
-                  {user?.firstName} {user?.lastName}
-                </span>
+                <span className="mono">Your tickets</span>
               </div>
               {state.loading ? (
                 <p>Loading tickets…</p>
@@ -617,7 +593,7 @@ function FairTixView({
                 <Empty
                   icon="ticket"
                   title="No tickets yet"
-                  body="Tickets purchased with your account will appear here."
+                  body="Your purchased tickets will appear here."
                   action={
                     <Link className="button primary" href="/event">
                       Browse Concerts <Icon name="arrow" />
@@ -646,43 +622,27 @@ function FairTixView({
                 </h1>
                 <p></p>
               </div>
-              <Badge tone="green">
-                <Icon name="shield" size={16} /> Maximum 1.1 XLM
-              </Badge>
+              <Link className="button secondary" href="/tickets">
+                Sell a Ticket <Icon name="arrow" size={17} />
+              </Link>
             </div>
-            <div className="market-banner">
-              <Icon name="cap" size={28} />
-              <div>
-                <strong>Resale Price Limit</strong>
-                <p>
-                  Every listing stays within the organizer’s 1.1 XLM cap. Demo
-                  transfers use app rules; resale payments aren’t routed through
-                  Paiflow.
-                </p>
-              </div>
-            </div>
+            <ResaleMarket onWallet={() => setWalletOpen(true)} />
             <div className="collection-heading">
               <span>
                 {market.length} available{" "}
                 {market.length === 1 ? "listing" : "listings"}
               </span>
-              <span>Iloilo After Hours · General admission</span>
+              <span>Iloilo After Hours · Maximum 1.1 XLM</span>
             </div>
             {market.length ? (
               <div className="ticket-grid">
                 {market.map((t) => ticketCard(t, true))}
               </div>
             ) : (
-              <Empty
-                icon="ticket"
-                title="No resale listings"
-                body="List a ticket from My Tickets to make it available for resale."
-                action={
-                  <Link className="button secondary" href="/tickets">
-                    Go to My tickets <Icon name="arrow" />
-                  </Link>
-                }
-              />
+              <p className="resale-sell-note">
+                No Iloilo After Hours tickets are listed.{" "}
+                <Link href="/tickets">List a ticket from My Tickets.</Link>
+              </p>
             )}
           </section>
         )}
@@ -813,9 +773,9 @@ function FairTixView({
                       {body}{" "}
                       {
                         [
-                          "Sign into a FairTix account, then choose Ana or Ben’s sample wallet at checkout. Each account starts with 10 demo XLM. No wallet extension is needed.",
+                          "Choose Ana or Ben’s sample wallet at checkout. This browser starts with 10 sample XLM. No wallet extension is needed.",
                           "Open the event and review the 1 XLM price. Complete the demo checkout to add a ticket to My tickets.",
-                          "Choose List for resale. A price above 1.1 XLM is rejected. Sign into another customer account to purchase the listing.",
+                          "Choose List for resale. A price above 1.1 XLM is rejected. Use a separate browser or private window to preview purchasing the listing.",
                           "Open Show QR on your pass. In Gate check, enter its ticket ID. The first check redeems it; the next one is refused.",
                         ][i]
                       }
@@ -860,7 +820,7 @@ function FairTixView({
               ],
               [
                 "Where is my demo saved?",
-                "Tickets and balances belong to your signed-in account on this local demo server. Reset Demo clears your purchases and restores your balance to 10 XLM.",
+                "Tickets and balances are saved for this browser. Reset Demo clears your purchases and restores your sample balance to 10 XLM.",
               ],
             ].map(([q, a]) => (
               <details key={q}>
@@ -894,19 +854,19 @@ function FairTixView({
         <div className="container footer-bottom">
           <span>© 2026 FairTix</span>
           <span>
-            <span className="live-dot" /> UI demo · No real payments · Stellar
-            Testnet planned
+            <span className="live-dot" /> Sample events · Payments simulated ·
+            Stellar Testnet planned
           </span>
         </div>
       </footer>
 
       {walletOpen && (
         <Modal
-          title={wallet ? "Your demo wallet" : "Connect Demo Wallet"}
+          title={wallet ? "Your Sample Wallet" : "Connect Wallet"}
           onClose={() => setWalletOpen(false)}
         >
           <p className="modal-intro">
-            Choose a demo wallet. No Freighter connection is required.
+            Choose a sample wallet. No Freighter connection is required.
           </p>
           <div className="wallet-options">
             {wallets.map((w) => (
@@ -926,7 +886,7 @@ function FairTixView({
               >
                 <span className={`avatar ${w.id}`}>{w.name[0]}</span>
                 <span>
-                  <strong>{w.name}’s demo wallet</strong>
+                  <strong>{w.name}’s sample wallet</strong>
                   <small className="mono">
                     {w.address} · {state.balances[w.id].toFixed(2)} XLM
                   </small>
@@ -952,8 +912,8 @@ function FairTixView({
             </button>
           )}
           <p className="modal-footnote">
-            <Icon name="shield" size={15} /> Demo XLM only. No signatures or
-            payments.
+            <Icon name="shield" size={15} /> Sample balances only. No signatures
+            or payments.
           </p>
         </Modal>
       )}
@@ -970,7 +930,7 @@ function FairTixView({
               <span className="success-orb">
                 <Icon name="check" size={32} />
               </span>
-              <h3>Your demo ticket is ready.</h3>
+              <h3>Your ticket is ready.</h3>
               <p>Iloilo After Hours · General admission</p>
               <div className="receipt">
                 <div>
@@ -982,7 +942,7 @@ function FairTixView({
                   <strong>{wallet?.address}</strong>
                 </div>
                 <div>
-                  <span>Demo amount</span>
+                  <span>Amount</span>
                   <strong>1 XLM</strong>
                 </div>
                 <div>
@@ -1003,7 +963,6 @@ function FairTixView({
             </div>
           ) : (
             <>
-              <Badge tone="blue">DEMO CHECKOUT</Badge>
               <h3 className="checkout-event">Iloilo After Hours</h3>
               <p className="muted">General admission · 1 ticket</p>
               <div className="receipt">
@@ -1012,7 +971,7 @@ function FairTixView({
                   <strong>{PRICE} XLM</strong>
                 </div>
                 <div>
-                  <span>Demo buyer</span>
+                  <span>Buyer</span>
                   <strong>{wallet?.address}</strong>
                 </div>
                 <div>
@@ -1029,8 +988,8 @@ function FairTixView({
               <div className="inline-note">
                 <Icon name="globe" />
                 <p>
-                  In the connected version, Paiflow will receive the payment and
-                  pay the organizer. This checkout only uses your demo balance.
+                  This payment uses a sample balance. No funds are transferred
+                  and no blockchain transaction is created.
                 </p>
               </div>
               <button
@@ -1055,7 +1014,7 @@ function FairTixView({
                   }
                 }}
               >
-                Complete demo purchase <Icon name="arrow" />
+                Complete Purchase <Icon name="arrow" />
               </button>
             </>
           )}
@@ -1079,7 +1038,7 @@ function FairTixView({
                 await listTicket(listing.id, Number(price));
                 setListing(null);
                 setMessage({
-                  text: `${listing.id} is listed for ${price} XLM. Sign into another customer account to buy it.`,
+                  text: `${listing.id} is listed for ${price} XLM. It is now available in the resale market.`,
                   ok: true,
                 });
               } catch (e) {
@@ -1157,7 +1116,7 @@ function FairTixView({
       {resetOpen && (
         <Modal title="Reset Demo?" onClose={() => setResetOpen(false)}>
           <p className="modal-intro">
-            This removes your account’s demo purchases and transactions,
+            This removes this browser’s prototype purchases and transactions,
             restores your demo balance to 10 XLM, and clears saved concerts and
             seat reservations in this browser. Other accounts are unchanged.
           </p>

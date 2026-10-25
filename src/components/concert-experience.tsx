@@ -49,13 +49,11 @@ export function ConcertDetail({
           sizes="100vw"
         />
         <div className="detail-banner-overlay" />
+        <Link href="/concerts" className="detail-back">
+          ← All concerts
+        </Link>
         <div className="detail-banner-content">
-          <Link href="/concerts" className="detail-back">
-            ← All concerts
-          </Link>
-          <span className="cinema-kicker">
-            {concert.genre.toUpperCase()} · FICTIONAL DEMO EVENT
-          </span>
+          <span className="cinema-kicker">{concert.genre}</span>
           <h1>
             {concert.artist}
             <br />
@@ -80,11 +78,6 @@ export function ConcertDetail({
           <p>
             {concert.genre} concert at {concert.venue}, {concert.city}.
           </p>
-          <p className="detail-demo-note">
-            This is a fictional showcase event. Dates, venue, seats, and prices
-            are sample data. Checkout creates a local demo booking without
-            sending USDC.
-          </p>
           <h3>Ticket Categories</h3>
           <div className="category-preview">
             {venue.categories.map((c) => (
@@ -103,10 +96,10 @@ export function ConcertDetail({
         <aside className="detail-booking-panel">
           <span className="cinema-kicker">
             {concert.status === "presale"
-              ? "Demo presale"
+              ? "Presale Tickets"
               : concert.status === "upcoming"
-                ? "Upcoming concert · Demo booking"
-                : "Demo tickets available"}
+                ? "Upcoming Concert"
+                : "Tickets Available"}
           </span>
           <p>Ticket Availability</p>
           <div className="detail-price">
@@ -130,13 +123,6 @@ export function ConcertDetail({
             <CinemaIcon name="heart" size={17} />
             {saved ? "Saved to your list" : "Save this concert"}
           </button>
-          <div className="detail-panel-note">
-            <CinemaIcon name="ticket" size={16} /> Demo booking · No real
-            payment
-          </div>
-          <p className="small">
-            Select a ticket category and seats to continue to demo checkout.
-          </p>
         </aside>
       </div>
       <div className="detail-related">
@@ -176,10 +162,9 @@ export function ShowcaseTickets() {
   return (
     <section className="showcase-tickets">
       <div className="collection-heading">
-        <span>Concert showcase bookings</span>
+        <span>Concert Bookings</span>
         <span>
-          {bookings.length} demo{" "}
-          {bookings.length === 1 ? "booking" : "bookings"}
+          {bookings.length} {bookings.length === 1 ? "booking" : "bookings"}
         </span>
       </div>
       <div className="showcase-ticket-grid">
@@ -197,7 +182,7 @@ export function ShowcaseTickets() {
               </div>
               <div>
                 <span className="cinema-kicker">
-                  {b.entryStatus === "redeemed" ? "REDEEMED" : "DEMO CONFIRMED"}
+                  {b.entryStatus === "redeemed" ? "REDEEMED" : "CONFIRMED"}
                 </span>
                 <h3>
                   {c.artist} {c.title}
@@ -232,7 +217,7 @@ export function ShowcaseTickets() {
         <dialog
           className="modal"
           ref={ref}
-          aria-label="Demo concert pass"
+          aria-label="Concert pass"
           onCancel={() => setPass(null)}
         >
           <div className="modal-heading">
@@ -247,8 +232,7 @@ export function ShowcaseTickets() {
           </div>
           <div className="qr-pass">
             <span className="cinema-kicker">
-              DEMO PASS ·{" "}
-              {pass.entryStatus === "redeemed" ? "REDEEMED" : "VALID"}
+              TICKET · {pass.entryStatus === "redeemed" ? "REDEEMED" : "VALID"}
             </span>
             <h3>{concerts.find((c) => c.id === pass.eventId)?.title}</h3>
             <div className="qr-code">
@@ -262,10 +246,10 @@ export function ShowcaseTickets() {
                 {pass.category} · {pass.seats.join(", ")}
               </p>
             )}
-            <p>Demo total: {money(pass.total)} USDC</p>
+            <p>Total: {money(pass.total)} USDC</p>
             <p className="small muted">
-              Local demo booking. No funds sent or transaction hash created.
-              Gate staff check this booking ID.
+              Payment was simulated. No funds were transferred. Gate staff check
+              this booking ID.
             </p>
             {user?.role !== "customer" && (
               <Link

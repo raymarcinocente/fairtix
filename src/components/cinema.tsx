@@ -12,8 +12,6 @@ import {
 import { toggleSaved, useShowcase } from "@/lib/showcase-store";
 import { useSeating } from "@/lib/seating-store";
 import { configuredPrices } from "@/lib/seating-data";
-import { accountAction, useAuth } from "@/lib/auth-client";
-import { useRouter } from "next/navigation";
 
 function displayPrice(
   concert: Concert,
@@ -119,10 +117,6 @@ export function CinemaHeader({
   onWallet: () => void;
 }) {
   const [searchOpen, setSearchOpen] = useState(false);
-  const { user } = useAuth();
-  const router = useRouter();
-  const [signingOut, setSigningOut] = useState(false);
-  const [authError, setAuthError] = useState("");
   return (
     <>
       <header className={`cinema-header ${view === "home" ? "over-hero" : ""}`}>
@@ -137,7 +131,7 @@ export function CinemaHeader({
             ["Concerts", "/concerts", "concerts"],
             ["Upcoming", "/upcoming", "upcoming"],
             ["Presale", "/presale", "presale"],
-            ["Venues", "/venues", "venues"],
+            ["Resale Market", "/market", "market"],
             ["My Tickets", "/tickets", "tickets"],
           ].map(([label, href, key]) => (
             <Link
@@ -161,63 +155,23 @@ export function CinemaHeader({
           >
             <CinemaIcon name="search" />
           </button>
-          {user ? (
-            <details className="account-menu">
-              <summary aria-label="Account menu">
-                <CinemaIcon name="user" size={18} />
-              </summary>
-              <div className="account-menu-items">
-                {[
-                  ["My Account", "/account"],
-                  ["My Tickets", "/tickets"],
-                  ["Transactions", "/account/transactions"],
-                  ["My Wallet", "/account/wallet"],
-                  ["Saved Concerts", "/saved"],
-                ].map(([label, path]) => (
-                  <Link href={path} key={path}>
-                    {label}
-                  </Link>
-                ))}
-                <button
-                  disabled={signingOut}
-                  onClick={async () => {
-                    setSigningOut(true);
-                    setAuthError("");
-                    try {
-                      await accountAction("logout");
-                      router.replace("/login");
-                      router.refresh();
-                    } catch (e) {
-                      setAuthError((e as Error).message);
-                    } finally {
-                      setSigningOut(false);
-                    }
-                  }}
-                >
-                  {signingOut ? "Signing out…" : "Sign Out"}
-                </button>
-                {authError && <p role="alert">{authError}</p>}
-              </div>
-            </details>
-          ) : (
-            <details className="account-menu">
-              <summary aria-label="Account menu">
-                <CinemaIcon name="user" size={18} />
-              </summary>
-              <div className="account-menu-items">
-                <Link className="auth-nav-link" href="/login">
-                  Sign In
+          <details className="account-menu">
+            <summary aria-label="Tickets and wallet menu">
+              <CinemaIcon name="user" size={18} />
+            </summary>
+            <div className="account-menu-items">
+              {[
+                ["My Tickets", "/tickets"],
+                ["Transactions", "/account/transactions"],
+                ["My Wallet", "/account/wallet"],
+                ["Saved Concerts", "/saved"],
+              ].map(([label, path]) => (
+                <Link href={path} key={path}>
+                  {label}
                 </Link>
-                <Link
-                  className="auth-nav-link auth-nav-register"
-                  href="/register"
-                >
-                  Register
-                </Link>
-                <Link href="/saved">Saved Concerts</Link>
-              </div>
-            </details>
-          )}
+              ))}
+            </div>
+          </details>
         </div>
       </header>
       {searchOpen && <SearchDialog onClose={() => setSearchOpen(false)} />}
@@ -370,9 +324,6 @@ export function ConcertPoster({
               <strong>TBA</strong>
             </span>
           )}
-          <span className="poster-top">
-            {concert.id === "event-1" ? "Demo event" : "Demo event"}
-          </span>
           <div className="poster-lettering">
             <span>{concert.artist}</span>
             <strong>{concert.title}</strong>
@@ -579,11 +530,6 @@ export function CinemaHome() {
               Starting from<strong>{displayPrice(current, pricing)}</strong>
             </span>
           </div>
-          <span className="hero-demo-label">
-            {current.id === "event-1"
-              ? "Demo event · No real payments"
-              : "Demo event · No real payments"}
-          </span>
         </div>
         <div className="hero-bottom-line">
           <span className="hero-edition"></span>
@@ -783,7 +729,7 @@ export function CinemaHome() {
         <CinemaIcon name="music" size={25} />
         <h2></h2>
         <p></p>
-        <span>Demo events · No real payments</span>
+        <span>Payments are simulated. No funds are transferred.</span>
       </div>
     </div>
   );
@@ -819,7 +765,6 @@ export function CinemaBrowse({ view }: { view: string }) {
         {titles[view]}
         <span className="yellow-period">.</span>
       </h1>
-      <p>{saved ? "" : "Concerts shown are fictional demo events."}</p>
       <div className="catalog-filters">
         <div>
           <CinemaIcon name="search" size={18} />
@@ -857,8 +802,7 @@ export function CinemaBrowse({ view }: { view: string }) {
                 <span className="cinema-kicker">{related[0].city}</span>
                 <h2>{venue}</h2>
                 <p>
-                  {related.length} demo{" "}
-                  {related.length === 1 ? "show" : "shows"}
+                  {related.length} {related.length === 1 ? "show" : "shows"}
                 </p>
                 {related.map((c) => (
                   <Link key={c.id} href={concertUrl(c)}>

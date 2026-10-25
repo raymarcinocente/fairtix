@@ -78,6 +78,7 @@ export function VenueMap({
   now,
   selectedSection,
   onSection,
+  readOnly = false,
 }: {
   snapshot: SeatingSnapshot;
   eventId: string;
@@ -85,15 +86,16 @@ export function VenueMap({
   now: number;
   selectedSection?: string | null;
   onSection: (id: string) => void;
+  readOnly?: boolean;
 }) {
   const { event, venue } = seatingFor(snapshot, eventId);
   const [zoom, setZoom] = useState(1);
   return (
-    <div className="venue-map-panel">
+    <div className={`venue-map-panel ${readOnly ? "resale-readonly-map" : ""}`}>
       <div className="venue-map-toolbar">
         <div>
           <h3>Seating Map</h3>
-          <p>{venue.name} · Demo layout</p>
+          <p>{venue.name}</p>
         </div>
         <div className="map-zoom" aria-label="Venue map zoom">
           <button
@@ -158,6 +160,7 @@ export function VenueMap({
             return (
               <button
                 type="button"
+                disabled={readOnly}
                 key={section.id}
                 className={`venue-zone zone-${section.categoryId} ${selectedSection === section.id ? "active" : ""} ${selected ? "has-selection" : ""}`}
                 style={
@@ -170,7 +173,11 @@ export function VenueMap({
                   } as CSSProperties
                 }
                 aria-pressed={selectedSection === section.id}
-                aria-label={`${section.name}, ${category.name}, ${Number.isFinite(price) ? `${price.toFixed(2)} USDC` : "not on sale"}, ${available} available${selected ? `, ${selected} selected` : ""}`}
+                aria-label={
+                  readOnly
+                    ? `${section.name}${selectedSection === section.id ? ", Ticket location" : ""}`
+                    : `${section.name}, ${category.name}, ${Number.isFinite(price) ? `${price.toFixed(2)} USDC` : "not on sale"}, ${available} available${selected ? `, ${selected} selected` : ""}`
+                }
                 title={`${section.name} · ${available} available`}
                 onClick={() => onSection(section.id)}
               >
@@ -196,14 +203,19 @@ export function VenueMap({
                   <path className="zone-row-markings" d="M12 18H88M12 83H88" />
                 </svg>
                 <strong>{section.name}</strong>
-                <span>
-                  {Number.isFinite(price)
-                    ? `${price.toFixed(2)} USDC`
-                    : "Not on sale"}
-                </span>
+                {!readOnly && (
+                  <span>
+                    {Number.isFinite(price)
+                      ? `${price.toFixed(2)} USDC`
+                      : "Not on sale"}
+                  </span>
+                )}
                 <small>
-                  {available} available
-                  {section.accessible.length ? " · ♿" : ""}
+                  {readOnly
+                    ? selectedSection === section.id
+                      ? "Ticket location"
+                      : category.name
+                    : `${available} available${section.accessible.length ? " · ♿" : ""}`}
                 </small>
                 {selected > 0 && (
                   <b className="zone-selected-count">✓ {selected}</b>
@@ -216,7 +228,9 @@ export function VenueMap({
       </div>
       <CategoryLegend snapshot={snapshot} eventId={eventId} />
       <p className="seating-demo-note">
-        Demo venue layout. Select a section to choose seats or quantity.
+        {readOnly
+          ? "The highlighted section contains this ticket."
+          : "Select a section to choose seats or quantity."}
       </p>
     </div>
   );

@@ -1,5 +1,6 @@
-import { NextRequest } from "next/server";
+import { NextRequest, connection } from "next/server";
 import { randomUUID } from "node:crypto";
+import { publicResale, restoreResale } from "@/lib/resale-service";
 import {
   ApiError,
   apiUser,
@@ -8,6 +9,7 @@ import {
   persist,
   publicAccount,
   sessionUser,
+  prototypeVisitor,
 } from "@/lib/mock-account-server";
 import {
   sectionSeats,
@@ -21,6 +23,7 @@ import {
 const headers = { "Cache-Control": "private, no-store" };
 type Context = { params: Promise<{ action: string[] }> };
 export async function GET(request: NextRequest, context: Context) {
+  await connection();
   try {
     const action = (await context.params).action.join("/");
     const db = database();
@@ -46,6 +49,7 @@ export async function GET(request: NextRequest, context: Context) {
               price: t.price,
             })),
           soldCount: db.tickets.length,
+          resale: publicResale(db, user?.id),
           events: db.events,
           venues: db.venues,
         },
@@ -56,19 +60,17 @@ export async function GET(request: NextRequest, context: Context) {
       action === "organizer/bookings" || action === "admin/accounts",
     );
     if (action === "admin/accounts") {
-      if (account.role !== "administrator")
-        throw new ApiError("Administrator access is required.", 403);
-      return Response.json({ users: db.users.map(publicAccount) }, { headers });
+      throw new ApiError(
+        "Account management is disabled in this prototype.",
+        404,
+      );
     }
     if (action !== "records" && action !== "organizer/bookings")
       throw new ApiError("Not found.", 404);
     return Response.json(
       {
         bookings: db.bookings
-          .filter(
-            (b) =>
-              action === "organizer/bookings" || b.customerId === account.id,
-          )
+          .filter((b) => b.customerId === account.id)
           .map(publicRecord),
         tickets: db.tickets
           .filter((t) => t.customerId === account.id)
@@ -109,6 +111,19 @@ async function mutate(request: NextRequest, context: Context) {
     const action = (await context.params).action.join("/");
     const db = database();
     let result: unknown;
+    if (action === "prototype") {
+      const user = await prototypeVisitor(db);
+      persist(db);
+      return Response.json(
+        { user, adapter: "anonymous-prototype" },
+        { headers },
+      );
+    }
+    if (action.startsWith("auth/") && action !== "auth/wallet")
+      throw new ApiError(
+        "Account authentication is disabled in this prototype.",
+        410,
+      );
     if (action === "holds/release") {
       if (
         typeof body.session !== "string" ||
@@ -192,7 +207,112 @@ async function mutate(request: NextRequest, context: Context) {
         db,
         action.startsWith("organizer/") || action === "scan",
       );
-      if (action === "organizer/config") {
+      if (
+        action === "resale/hold" ||
+        action === "resale/release" ||
+        action === "resale/buy"
+      ) {
+        const listing = db.resaleListings.find((l) => l.id === body.id);
+        const booking =
+          listing && db.bookings.find((b) => b.id === listing.bookingId);
+        if (
+          !listing ||
+          !booking ||
+          listing.status !== "listed" ||
+          booking.entryStatus ||
+          booking.customerId !== listing.sellerId
+        )
+          throw new ApiError("This resale ticket is no longer available.", 409);
+        if (action === "resale/release") {
+          if (listing.reservedBy === user.id) {
+            delete listing.reservedBy;
+            delete listing.reservedUntil;
+          }
+          result = { ok: true };
+        } else if (action === "resale/hold") {
+          if (
+            listing.reservedUntil &&
+            listing.reservedUntil > Date.now() &&
+            listing.reservedBy !== user.id
+          )
+            throw new ApiError(
+              "Another buyer is reviewing this ticket. Please try again later.",
+              409,
+            );
+          const expires =
+            listing.reservedBy === user.id &&
+            listing.reservedUntil &&
+            listing.reservedUntil > Date.now()
+              ? listing.reservedUntil
+              : Date.now() + 300000;
+          listing.reservedBy = user.id;
+          listing.reservedUntil = expires;
+          result = { expires };
+        } else {
+          if (!user.wallet) throw new ApiError("Connect a wallet to continue.");
+          if (body.paymentMode !== "demo")
+            throw new ApiError(
+              "Live payment verification is not configured.",
+              503,
+            );
+          if (
+            listing.reservedBy !== user.id ||
+            !listing.reservedUntil ||
+            listing.reservedUntil <= Date.now()
+          )
+            throw new ApiError(
+              "Your reservation expired. Close this ticket and try again.",
+              409,
+            );
+          const fee = Math.round(listing.price * 5) / 100,
+            total = Math.round((listing.price + fee) * 100) / 100;
+          if (
+            typeof body.total !== "number" ||
+            !Number.isFinite(body.total) ||
+            Math.abs(body.total - total) > 0.001
+          )
+            throw new ApiError(
+              "The order total changed. Review this ticket again.",
+            );
+          const createdAt = new Date().toISOString();
+          booking.customerId = user.id;
+          booking.wallet = user.wallet;
+          booking.subtotal = listing.price;
+          booking.fee = fee;
+          booking.total = total;
+          booking.createdAt = createdAt;
+          booking.lineItems = booking.lineItems?.map((t) => ({
+            ...t,
+            price: listing.price,
+          }));
+          listing.status = "sold";
+          delete listing.reservedBy;
+          delete listing.reservedUntil;
+          db.transactions.push(
+            {
+              id: randomUUID(),
+              reference: booking.id,
+              eventId: booking.eventId,
+              customerId: user.id,
+              kind: "resale purchase",
+              amount: total,
+              currency: "USDC",
+              createdAt,
+            },
+            {
+              id: randomUUID(),
+              reference: booking.id,
+              eventId: booking.eventId,
+              customerId: listing.sellerId,
+              kind: "resale sale",
+              amount: listing.price,
+              currency: "USDC",
+              createdAt,
+            },
+          );
+          result = { booking: publicRecord(booking) };
+        }
+      } else if (action === "organizer/config") {
         const event = body.event as EventSeating;
         const venue = body.venue as VenueLayout;
         validateConfig(event, venue);
@@ -474,10 +594,14 @@ async function mutate(request: NextRequest, context: Context) {
         result = { ok: true };
       } else if (action === "scan") {
         const booking = db.bookings.find(
-          (b) => b.id.toUpperCase() === String(body.id).toUpperCase(),
+          (b) =>
+            b.customerId === user.id &&
+            b.id.toUpperCase() === String(body.id).toUpperCase(),
         );
         const ticket = db.tickets.find(
-          (t) => t.id.toUpperCase() === String(body.id).toUpperCase(),
+          (t) =>
+            t.customerId === user.id &&
+            t.id.toUpperCase() === String(body.id).toUpperCase(),
         );
         const ok =
           (!!booking && !booking.entryStatus) || ticket?.status === "valid";
@@ -498,6 +622,7 @@ async function mutate(request: NextRequest, context: Context) {
         });
         result = { ok, message };
       } else if (action === "reset") {
+        restoreResale(db, user.id);
         db.bookings = db.bookings.filter((b) => b.customerId !== user.id);
         db.tickets = db.tickets.filter((t) => t.customerId !== user.id);
         db.history = db.history.filter((h) => h.customerId !== user.id);

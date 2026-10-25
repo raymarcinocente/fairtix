@@ -20,7 +20,6 @@ import { seatLabel, type SeatTicket } from "@/lib/seating-data";
 import { CinemaIcon } from "./cinema";
 import { SectionSeats, useSeatingClock, VenueMap } from "./seating-map";
 import { demoApi, useAuth } from "@/lib/auth-client";
-import { useRouter } from "next/navigation";
 import { refreshRecords } from "@/lib/customer-records";
 
 const money = (n: number) => n.toFixed(2);
@@ -55,8 +54,7 @@ export default function SeatBooking({
   onWallet: () => void;
   resume?: boolean;
 }) {
-  const { user, ready } = useAuth();
-  const router = useRouter();
+  const { ready } = useAuth();
   const ref = useRef<HTMLDialogElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const state = useDemo();
@@ -108,7 +106,7 @@ export default function SeatBooking({
       expires: deadline,
     })
       .then(() => {
-        if (user && items.length) setStage("checkout");
+        if (items.length) setStage("checkout");
       })
       .catch(() => {
         setStage("seats");
@@ -116,7 +114,7 @@ export default function SeatBooking({
           "Your reservation expired or the selected tickets are no longer available. Select your tickets again.",
         );
       });
-  }, [resume, ready, user, snapshot, concert.id, showcase.inventory, deadline]);
+  }, [resume, ready, snapshot, concert.id, showcase.inventory, deadline]);
   useEffect(() => {
     const dialog = ref.current;
     dialog?.showModal();
@@ -134,14 +132,8 @@ export default function SeatBooking({
     }
   }
   function pay() {
-    if (!user) {
-      router.push(
-        `/login?returnTo=${encodeURIComponent(`/concerts/${concert.id}?checkout=1`)}`,
-      );
-      return;
-    }
     if (!wallet) {
-      setError("Connect a demo wallet to continue.");
+      setError("Connect a wallet to continue.");
       return;
     }
     if (!selected.length || expired) {
@@ -173,7 +165,7 @@ export default function SeatBooking({
           setStage("confirmed");
         } catch (e) {
           setError(
-            e instanceof Error ? e.message : "Unable to create demo booking.",
+            e instanceof Error ? e.message : "Unable to create booking.",
           );
           setStage("seats");
         }
@@ -253,7 +245,7 @@ export default function SeatBooking({
           <span className="booking-check">
             <CinemaIcon name="check" size={35} />
           </span>
-          <h3>Your demo booking is confirmed.</h3>
+          <h3>Your booking is confirmed.</h3>
           <p>
             No funds were sent. Your receipt and QR pass are saved to My
             Tickets.
@@ -269,7 +261,7 @@ export default function SeatBooking({
               <strong>{booking.seats.length}</strong>
             </div>
             <div>
-              <span>Demo total</span>
+              <span>Total</span>
               <strong>{money(booking.total)} USDC</strong>
             </div>
             <div>
@@ -351,28 +343,22 @@ export default function SeatBooking({
               </>
             ) : (
               <div className="checkout-preview">
-                <span className="cinema-kicker">
-                  Stellar / USDC · Demo checkout
-                </span>
+                <span className="cinema-kicker">Stellar / USDC</span>
                 <h3>
                   {stage === "processing"
-                    ? "Simulating your checkout…"
+                    ? "Processing your booking…"
                     : "Payment Details"}
                 </h3>
-                <p>
-                  Preview a wallet checkout with no real payment, wallet
-                  signature, or blockchain transaction.
-                </p>
                 <div className="payment-wallet">
                   <CinemaIcon name="user" size={23} />
                   <div>
                     <strong>
                       {wallet
-                        ? `${wallet.name}’s demo wallet`
+                        ? `${wallet.name}’s sample wallet`
                         : "Wallet not connected"}
                     </strong>
                     <span>
-                      {wallet?.address || "Connect a demo wallet to continue."}
+                      {wallet?.address || "Connect a wallet to continue."}
                     </span>
                   </div>
                   {!wallet && (
@@ -387,9 +373,9 @@ export default function SeatBooking({
                 </div>
                 <div className="payment-status-list">
                   {[
-                    "Demo wallet approval",
-                    "Simulate Stellar payment",
-                    "Local booking confirmation",
+                    "Wallet Connection",
+                    "Payment Review",
+                    "Booking Confirmation",
                   ].map((label, i) => (
                     <div
                       key={label}
@@ -407,8 +393,8 @@ export default function SeatBooking({
                       {label}
                       <small>
                         {stage === "processing" && i === progress
-                          ? "Simulating…"
-                          : "Demo only"}
+                          ? "Processing…"
+                          : "Pending"}
                       </small>
                     </div>
                   ))}
@@ -545,12 +531,6 @@ export default function SeatBooking({
                       void refreshRecords();
                       return;
                     }
-                    if (!user) {
-                      router.push(
-                        `/login?returnTo=${encodeURIComponent(`/concerts/${concert.id}?checkout=1`)}`,
-                      );
-                      return;
-                    }
                     void refreshRecords();
                     setStage("checkout");
                     setError("");
@@ -573,8 +553,8 @@ export default function SeatBooking({
                     onClick={pay}
                   >
                     {stage === "processing"
-                      ? "Simulating…"
-                      : `Complete demo · ${money(total)} USDC`}
+                      ? "Processing…"
+                      : `Complete Booking · ${money(total)} USDC`}
                   </button>
                   <button
                     type="button"
@@ -587,7 +567,7 @@ export default function SeatBooking({
                 </>
               )}
               <span className="seat-summary-note">
-                Demo availability · No real payment
+                Reservation expires after 5 minutes
               </span>
             </div>
           </aside>

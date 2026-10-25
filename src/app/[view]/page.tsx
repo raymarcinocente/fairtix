@@ -1,7 +1,5 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import FairTix, { type View } from "@/components/fairtix";
-import { AuthPage } from "@/components/account-pages";
-import { requireUser } from "@/lib/mock-account-server";
 const views = [
   "event",
   "tickets",
@@ -43,10 +41,6 @@ export default async function Page({
       "terms",
     ].includes(view)
   )
-    return <AuthPage mode={view} />;
-  if (["tickets", "profile", "account"].includes(view))
-    await requireUser(`/${view}`);
-  if (["organizer", "scan"].includes(view))
-    await requireUser(`/${view}`, ["organizer", "administrator"]);
+    redirect("/");
   return <FairTix view={view as View} />;
 }

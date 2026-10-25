@@ -1,6 +1,5 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import FairTix from "@/components/fairtix";
-import { requireUser } from "@/lib/mock-account-server";
 export default async function Page({
   params,
 }: {
@@ -9,6 +8,6 @@ export default async function Page({
   const { section } = await params;
   if (!["profile", "security", "wallet", "transactions"].includes(section))
     notFound();
-  await requireUser(`/account/${section}`);
+  if (["profile", "security"].includes(section)) redirect("/account");
   return <FairTix view="account" accountSection={section} />;
 }
