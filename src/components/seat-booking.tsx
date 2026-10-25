@@ -30,6 +30,7 @@ import { demoApi, useAuth } from "@/lib/auth-client";
 import { refreshRecords } from "@/lib/customer-records";
 
 const money = (n: number) => n.toFixed(2);
+const UNSETTLED: PaymentResult["status"][] = ["submitted", "pending_verification"];
 export function BookingSeatDetails({ items }: { items: SeatTicket[] }) {
   return (
     <div className="booking-seat-details">
@@ -94,6 +95,9 @@ export default function SeatBooking({
   const fee = Math.round(subtotal * 5) / 100;
   const total = Math.round((subtotal + fee) * 100) / 100;
   const totalXlm = formatStroops(usdcToStroops(total));
+  // An unsettled payment from an earlier visit (not the one on screen) must be
+  // checked before a new one is prepared, so its recovery record isn't lost.
+  const previousPending = pending && pending !== review?.orderId ? pending : null;
   const section = venue.sections.find((s) => s.id === sectionId);
   const expired = !!deadline && now > 0 && deadline <= now;
   const groups = [...new Set(selected.map((s) => s.categoryId))].map((id) => ({
@@ -206,12 +210,27 @@ export default function SeatBooking({
     setStage("processing");
     setProgress(1);
     setError("");
+    let result: PaymentResult;
     try {
-      showResult(await signAndSubmitBookingPayment(review, freighter), "checkout");
+      result = await signAndSubmitBookingPayment(review, freighter);
     } catch (e) {
       setError(message(e, "Unable to complete this payment."));
       setStage("checkout");
+      return;
     }
+    // A just-submitted payment normally confirms within seconds; keep checking
+    // the same transaction for about a minute before handing over to the
+    // manual Check payment button.
+    setProgress(2);
+    for (let i = 0; i < 15 && UNSETTLED.includes(result.status); i++) {
+      await new Promise((r) => setTimeout(r, 4000));
+      try {
+        result = await checkBookingPayment(result.orderId);
+      } catch {
+        break;
+      }
+    }
+    showResult(result, "checkout");
   }
   // Recovery: re-verify the original transaction; never pays again.
   async function checkPayment(orderId: string) {
@@ -314,14 +333,14 @@ export default function SeatBooking({
           );
         })}
       </ol>
-      {pending && stage !== "processing" && stage !== "confirmed" && (
+      {previousPending && stage !== "processing" && stage !== "confirmed" && (
         <div className="seat-error" role="status">
-          You have a payment in progress for this event. Check it before
-          paying again.{" "}
+          You have an earlier payment for this event that isn&apos;t settled
+          yet. Check it before paying again.{" "}
           <button
             type="button"
             className="button secondary compact"
-            onClick={() => checkPayment(pending)}
+            onClick={() => checkPayment(previousPending)}
           >
             Check payment
           </button>
@@ -483,6 +502,7 @@ export default function SeatBooking({
                   )}
                 </div>
                 {review ? (
+                  <>
                   <div className="receipt">
                     <div>
                       <span>Network</span>
@@ -504,16 +524,20 @@ export default function SeatBooking({
                       <span>Max network fee</span>
                       <strong>{review.review.maxFeeXlm} XLM (extra)</strong>
                     </div>
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={consent}
-                        onChange={(e) => setConsent(e.target.checked)}
-                      />{" "}
-                      I approve paying {review.review.amountXlm} XLM plus the
-                      network fee on Stellar Testnet.
-                    </label>
                   </div>
+                  <label
+                    style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", margin: "4px 0 16px" }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={consent}
+                      onChange={(e) => setConsent(e.target.checked)}
+                      style={{ width: 18, height: 18, minHeight: 0, padding: 0, flex: "none", margin: "1px 0 0" }}
+                    />
+                    I approve paying {review.review.amountXlm} XLM plus the
+                    network fee on Stellar Testnet.
+                  </label>
+                  </>
                 ) : (
                   <p className="seat-summary-note">
                     {money(total)} USDC is charged as about {totalXlm} XLM at
@@ -521,17 +545,25 @@ export default function SeatBooking({
                     the shop and 10% to the community fund.
                   </p>
                 )}
-                {payment && payment.status !== "paid" && payment.status !== "failed" && payment.txHash && (
+                {payment && UNSETTLED.includes(payment.status) && payment.txHash && (
                   <div className="seat-error" role="status">
                     {payment.warning ||
-                      "Your payment is waiting for confirmation. Check it again shortly; do not pay twice."}{" "}
+                      "Your payment is still confirming. Check it again in a moment; don't pay twice."}{" "}
                     <a
                       href={`https://stellar.expert/explorer/testnet/tx/${payment.txHash}`}
                       target="_blank"
                       rel="noreferrer"
                     >
                       View transaction
-                    </a>
+                    </a>{" "}
+                    <button
+                      type="button"
+                      className="button secondary compact"
+                      disabled={stage === "processing"}
+                      onClick={() => checkPayment(payment.orderId)}
+                    >
+                      Check payment
+                    </button>
                   </div>
                 )}
                 <div className="payment-status-list">
@@ -720,6 +752,7 @@ export default function SeatBooking({
                       className="button primary full"
                       disabled={
                         !freighter ||
+                        !!previousPending ||
                         stage === "processing" ||
                         !selected.length ||
                         expired ||
