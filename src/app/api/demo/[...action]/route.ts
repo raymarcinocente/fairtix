@@ -79,6 +79,9 @@ export async function GET(request: NextRequest, context: Context) {
           .filter((t) => t.customerId === account.id)
           .map(publicRecord),
         balance: account.balance,
+        ownResale: db.resaleListings
+          .filter((listing) => listing.sellerId === account.id && listing.status === "listed")
+          .map(({ id, bookingId, price }) => ({ id, bookingId, price })),
         history: db.history
           .filter((h) => h.customerId === account.id)
           .map(publicRecord),
@@ -207,7 +210,47 @@ async function mutate(request: NextRequest, context: Context) {
         db,
         action.startsWith("organizer/") || action === "scan",
       );
-      if (
+      if (action === "resale/list") {
+        const booking = db.bookings.find((b) => b.id === body.bookingId && b.customerId === user.id);
+        const ticket = booking?.lineItems?.find((ticket) => ticket.id === body.seatId);
+        if (!booking || !ticket) throw new ApiError("Choose a ticket from My Tickets.", 404);
+        if (booking.entryStatus) throw new ApiError("Redeemed tickets cannot be resold.");
+        if (db.resaleListings.some((l) => l.bookingId === booking.id && l.status === "listed"))
+          throw new ApiError("This ticket is already listed.", 409);
+        const faceValue = ticket.price;
+        const maximum = Math.round(faceValue * 1.1 * 100) / 100;
+        if (typeof body.price !== "number" || !Number.isFinite(body.price) || body.price <= 0 || body.price > maximum || Math.abs(body.price * 100 - Math.round(body.price * 100)) > 0.0001)
+          throw new ApiError(`Enter a price between 0.01 and ${maximum.toFixed(2)} USDC.`);
+        let saleBooking = booking;
+        if (booking.seats.length > 1) {
+          saleBooking = {
+            ...booking, id: `DEMO-${randomUUID()}`, seats: [ticket.id],
+            lineItems: [ticket], category: ticket.categoryName,
+            subtotal: faceValue, fee: 0, total: faceValue,
+          };
+          db.bookings.push(saleBooking);
+          booking.seats = booking.seats.filter((seat) => seat !== ticket.id);
+          booking.lineItems = booking.lineItems!.filter((seat) => seat.id !== ticket.id);
+          booking.subtotal = Math.round(booking.lineItems.reduce((sum, seat) => sum + seat.price, 0) * 100) / 100;
+          booking.fee = Math.round(booking.subtotal * 5) / 100;
+          booking.total = Math.round((booking.subtotal + booking.fee) * 100) / 100;
+          booking.category = [...new Set(booking.lineItems.map((seat) => seat.categoryName))].join(", ");
+        }
+        const listing = {
+          id: `resale-${randomUUID()}`, bookingId: saleBooking.id,
+          sellerId: user.id, eventId: booking.eventId,
+          price: body.price, faceValue, status: "listed" as const,
+        };
+        db.resaleListings.push(listing);
+        result = { id: listing.id };
+      } else if (action === "resale/cancel") {
+        const listing = db.resaleListings.find((l) => l.id === body.id && l.sellerId === user.id && l.status === "listed");
+        if (!listing) throw new ApiError("Listing not found.", 404);
+        if (listing.reservedUntil && listing.reservedUntil > Date.now())
+          throw new ApiError("A buyer is reviewing this ticket. Try again when their reservation expires.", 409);
+        db.resaleListings = db.resaleListings.filter((l) => l !== listing);
+        result = { ok: true };
+      } else if (
         action === "resale/hold" ||
         action === "resale/release" ||
         action === "resale/buy"
@@ -230,6 +273,8 @@ async function mutate(request: NextRequest, context: Context) {
           }
           result = { ok: true };
         } else if (action === "resale/hold") {
+          if (listing.sellerId === user.id)
+            throw new ApiError("You cannot buy your own listing. Manage it from My Tickets.");
           if (
             listing.reservedUntil &&
             listing.reservedUntil > Date.now() &&
@@ -249,6 +294,7 @@ async function mutate(request: NextRequest, context: Context) {
           listing.reservedUntil = expires;
           result = { expires };
         } else {
+          if (listing.sellerId === user.id) throw new ApiError("You cannot buy your own listing.");
           if (!user.wallet) throw new ApiError("Connect a wallet to continue.");
           if (body.paymentMode !== "demo")
             throw new ApiError(
@@ -604,7 +650,7 @@ async function mutate(request: NextRequest, context: Context) {
             t.id.toUpperCase() === String(body.id).toUpperCase(),
         );
         const ok =
-          (!!booking && !booking.entryStatus) || ticket?.status === "valid";
+          (!!booking && !booking.entryStatus && !db.resaleListings.some((listing) => listing.bookingId === booking.id && listing.status === "listed")) || ticket?.status === "valid";
         const message = ok
           ? "Entry granted"
           : !booking && !ticket
@@ -624,6 +670,7 @@ async function mutate(request: NextRequest, context: Context) {
       } else if (action === "reset") {
         restoreResale(db, user.id);
         db.bookings = db.bookings.filter((b) => b.customerId !== user.id);
+        db.resaleListings = db.resaleListings.filter((listing) => db.bookings.some((booking) => booking.id === listing.bookingId));
         db.tickets = db.tickets.filter((t) => t.customerId !== user.id);
         db.history = db.history.filter((h) => h.customerId !== user.id);
         db.transactions = db.transactions.filter(

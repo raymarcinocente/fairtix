@@ -8,6 +8,7 @@ import type { EventSeating, VenueLayout } from "./seating-data";
 import type { Transaction } from "./auth-types";
 import type { ResaleListing } from "./resale-types";
 type Records = {
+  ownResale: { id: string; bookingId: string; price: number }[];
   resale: ResaleListing[];
   loading: boolean;
   error: string;
@@ -23,6 +24,7 @@ type Records = {
   history: { id: string; ok: boolean; message: string }[];
 };
 const initial: Records = {
+  ownResale: [],
   resale: [],
   loading: true,
   error: "",
@@ -101,11 +103,12 @@ export async function refreshRecords() {
           ? demoApi<
               Pick<
                 Records,
-                "bookings" | "tickets" | "balance" | "history" | "transactions"
+                "bookings" | "tickets" | "balance" | "history" | "transactions" | "ownResale"
               >
             >("records")
           : Promise.resolve({
               transactions: [],
+              ownResale: [],
               bookings: [],
               tickets: [],
               balance: 10,

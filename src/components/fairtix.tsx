@@ -586,12 +586,7 @@ function FairTixView({
                 <div className="ticket-grid">
                   {mine.map((t) => ticketCard(t))}
                 </div>
-              ) : showcase.bookings.length > 0 ? (
-                <p className="small muted">
-                  No original Iloilo After Hours tickets. Explore the original
-                  event for XLM resale.
-                </p>
-              ) : (
+              ) : showcase.bookings.length > 0 ? null : (
                 <Empty
                   icon="ticket"
                   title="No tickets yet"
@@ -607,7 +602,8 @@ function FairTixView({
             <div className="inline-note">
               <Icon name="shield" />
               <p>
-                Tickets can be listed for up to <strong>1.1 XLM</strong>.
+                Concert tickets can be listed for up to 10% above their purchase price.
+                Iloilo After Hours tickets have a maximum price of <strong>1.1 XLM</strong>.
                 Redeemed tickets can’t be resold.
               </p>
             </div>

@@ -1655,6 +1655,23 @@ option {
   margin-top: 22px;
   margin-bottom: 0;
 }
+.concert-ticket-resale {
+  margin-top: 12px;
+}
+.concert-ticket-resale form {
+  display: grid;
+  gap: 14px;
+}
+.concert-ticket-resale select,
+.concert-ticket-resale input {
+  width: 100%;
+  min-height: 46px;
+  padding: 12px;
+  border: 1px solid #39313f;
+  border-radius: 10px;
+  background: #100d16;
+  color: #fff;
+}
 .detail-metadata > span {
   display: flex;
   gap: 12px;

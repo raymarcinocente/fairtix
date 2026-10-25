@@ -105,7 +105,7 @@ export default function ResaleMarket({ onWallet }: { onWallet: () => void }) {
             return (
               <article
                 className="owned-ticket sample-resale-card"
-                key={concert.id}
+                key={listing.id}
               >
                 <button
                   type="button"

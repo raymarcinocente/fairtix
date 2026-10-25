@@ -15,6 +15,7 @@ import {
 import { CinemaIcon, PosterShelf } from "./cinema";
 import SeatBooking, { BookingSeatDetails } from "./seat-booking";
 import SeatingManager from "./seating-manager";
+import SellConcertTicket from "./sell-concert-ticket";
 import { seatingFor, useSeating } from "@/lib/seating-store";
 import { configuredPrices } from "@/lib/seating-data";
 
@@ -207,6 +208,7 @@ export function ShowcaseTickets() {
                   <CinemaIcon name="ticket" size={16} />
                   View Ticket
                 </button>
+                <SellConcertTicket booking={b} />
               </div>
             </article>
           );

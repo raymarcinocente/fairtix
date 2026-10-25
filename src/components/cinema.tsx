@@ -725,12 +725,6 @@ export function CinemaHome() {
           </>
         )}
       </div>
-      <div className="cinema-ending">
-        <CinemaIcon name="music" size={25} />
-        <h2></h2>
-        <p></p>
-        <span>Payments are simulated. No funds are transferred.</span>
-      </div>
     </div>
   );
 }
