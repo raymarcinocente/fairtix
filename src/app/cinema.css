@@ -4183,3 +4183,46 @@ option {
 .hero-bottom-line .hero-arrow-controls {
   justify-content: center;
 }
+
+/* Dates stay visible on every poster, including touch screens. */
+.poster-date {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  padding: 12px 12px 16px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  isolation: isolate;
+  text-shadow: 0 2px 6px #000c;
+  color: #fff;
+  line-height: 1;
+  pointer-events: none;
+}
+.poster-date::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 145px;
+  height: 150px;
+  z-index: -1;
+  background: radial-gradient(ellipse at top left, #000f 0%, #000c 25%, #0007 45%, #0000 72%);
+}
+.poster-date > span { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #ffcc30; }
+.poster-date > strong { font-size: 28px; font-weight: 700; margin-top: 5px; font-variant-numeric: tabular-nums; }
+.poster-date > small { font-size: 9px; margin-top: 5px; color: #c6becf; }
+.poster-date.date-pending > strong { font-size: 17px; }
+@media(max-width:560px) {
+  .poster-date { top: 0; left: 0; min-width: 45px; padding: 10px 10px 14px; border-radius: 0; }
+  .poster-date::before { width: 120px; height: 135px; }
+  .poster-date > strong { font-size: 24px; }
+  .poster-date > span { font-size: 10px; }
+}

@@ -119,7 +119,7 @@ export function CinemaHeader({
   onWallet: () => void;
 }) {
   const [searchOpen, setSearchOpen] = useState(false);
-  const { user, ready } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
   const [authError, setAuthError] = useState("");
@@ -161,64 +161,63 @@ export function CinemaHeader({
           >
             <CinemaIcon name="search" />
           </button>
-          {ready &&
-            (user ? (
-              <details className="account-menu">
-                <summary aria-label="Account menu">
-                  <CinemaIcon name="user" size={18} />
-                </summary>
-                <div className="account-menu-items">
-                  {[
-                    ["My Account", "/account"],
-                    ["My Tickets", "/tickets"],
-                    ["Transactions", "/account/transactions"],
-                    ["My Wallet", "/account/wallet"],
-                    ["Saved Concerts", "/saved"],
-                  ].map(([label, path]) => (
-                    <Link href={path} key={path}>
-                      {label}
-                    </Link>
-                  ))}
-                  <button
-                    disabled={signingOut}
-                    onClick={async () => {
-                      setSigningOut(true);
-                      setAuthError("");
-                      try {
-                        await accountAction("logout");
-                        router.replace("/login");
-                        router.refresh();
-                      } catch (e) {
-                        setAuthError((e as Error).message);
-                      } finally {
-                        setSigningOut(false);
-                      }
-                    }}
-                  >
-                    {signingOut ? "Signing out…" : "Sign Out"}
-                  </button>
-                  {authError && <p role="alert">{authError}</p>}
-                </div>
-              </details>
-            ) : (
-              <details className="account-menu">
-                <summary aria-label="Account menu">
-                  <CinemaIcon name="user" size={18} />
-                </summary>
-                <div className="account-menu-items">
-                  <Link className="auth-nav-link" href="/login">
-                    Sign In
+          {user ? (
+            <details className="account-menu">
+              <summary aria-label="Account menu">
+                <CinemaIcon name="user" size={18} />
+              </summary>
+              <div className="account-menu-items">
+                {[
+                  ["My Account", "/account"],
+                  ["My Tickets", "/tickets"],
+                  ["Transactions", "/account/transactions"],
+                  ["My Wallet", "/account/wallet"],
+                  ["Saved Concerts", "/saved"],
+                ].map(([label, path]) => (
+                  <Link href={path} key={path}>
+                    {label}
                   </Link>
-                  <Link
-                    className="auth-nav-link auth-nav-register"
-                    href="/register"
-                  >
-                    Register
-                  </Link>
-                  <Link href="/saved">Saved Concerts</Link>
-                </div>
-              </details>
-            ))}
+                ))}
+                <button
+                  disabled={signingOut}
+                  onClick={async () => {
+                    setSigningOut(true);
+                    setAuthError("");
+                    try {
+                      await accountAction("logout");
+                      router.replace("/login");
+                      router.refresh();
+                    } catch (e) {
+                      setAuthError((e as Error).message);
+                    } finally {
+                      setSigningOut(false);
+                    }
+                  }}
+                >
+                  {signingOut ? "Signing out…" : "Sign Out"}
+                </button>
+                {authError && <p role="alert">{authError}</p>}
+              </div>
+            </details>
+          ) : (
+            <details className="account-menu">
+              <summary aria-label="Account menu">
+                <CinemaIcon name="user" size={18} />
+              </summary>
+              <div className="account-menu-items">
+                <Link className="auth-nav-link" href="/login">
+                  Sign In
+                </Link>
+                <Link
+                  className="auth-nav-link auth-nav-register"
+                  href="/register"
+                >
+                  Register
+                </Link>
+                <Link href="/saved">Saved Concerts</Link>
+              </div>
+            </details>
+          )}
         </div>
       </header>
       {searchOpen && <SearchDialog onClose={() => setSearchOpen(false)} />}
@@ -310,6 +309,25 @@ export function ConcertPoster({
   const showcase = useShowcase();
   const pricing = useSeating();
   const saved = showcase.saved.includes(concert.id);
+  const date = concert.date.match(/^([A-Za-z]{3}) (\d{2}), (\d{4})/);
+  const monthNumber = date
+    ? String(
+        [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ].indexOf(date[1]) + 1,
+      ).padStart(2, "0")
+    : "";
   return (
     <article
       className={`concert-card ${ranked ? "ranked" : ""}`}
@@ -324,7 +342,7 @@ export function ConcertPoster({
         <Link
           href={concertUrl(concert)}
           className={`concert-poster poster-${concert.image}`}
-          aria-label={`${concert.artist} ${concert.title}, ${concert.city}, from ${displayPrice(concert, pricing)}`}
+          aria-label={`${concert.artist} ${concert.title}, ${concert.date}, ${concert.city}, from ${displayPrice(concert, pricing)}`}
         >
           <Image
             src={`/images/${concert.image}.webp`}
@@ -333,6 +351,25 @@ export function ConcertPoster({
             sizes="(max-width: 560px) 43vw, (max-width: 1000px) 25vw, 220px"
           />
           <div className="poster-shade" />
+          {date ? (
+            <time
+              className="poster-date"
+              dateTime={`${date[3]}-${monthNumber}-${date[2]}`}
+              aria-label={concert.date}
+            >
+              <span>{date[1]}</span>
+              <strong>{date[2]}</strong>
+              <small>{date[3]}</small>
+            </time>
+          ) : (
+            <span
+              className="poster-date date-pending"
+              aria-label="Date to be announced"
+            >
+              <span>Date</span>
+              <strong>TBA</strong>
+            </span>
+          )}
           <span className="poster-top">
             {concert.id === "event-1" ? "Demo event" : "Demo event"}
           </span>
@@ -514,9 +551,6 @@ export function CinemaHome() {
         </div>
         <div className="hero-cinematic-shade" />
         <div className="cinematic-hero-content" key={current.id}>
-          <div className="featured-eyebrow">
-            <span /> <span className="featured-divider" />{" "}
-          </div>
           <h1>
             <span>{current.artist}</span>
             <strong>{current.title}</strong>
