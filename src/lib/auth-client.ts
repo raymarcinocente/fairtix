@@ -87,7 +87,7 @@ export async function accountAction(action: string, body: unknown = {}) {
       ready: true,
       error: "",
       identityVersion:
-        state.identityVersion + (state.user?.id !== result.user?.id ? 1 : 0),
+        state.identityVersion + (state.user && state.user.id !== result.user?.id ? 1 : 0),
     };
     emit();
     window.dispatchEvent(new Event("fairtix-account"));

@@ -518,7 +518,6 @@ export default function SeatBooking({
                   className="button primary full"
                   disabled={!selected.length || expired || mixedInvalid}
                   onClick={async () => {
-                    if (!ready) return;
                     try {
                       await demoApi("holds", {
                         eventId: concert.id,

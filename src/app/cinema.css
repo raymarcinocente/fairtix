@@ -1647,12 +1647,13 @@ option {
 .detail-metadata {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  font-size: 20px;
-  font-weight: 600;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 400;
   line-height: 1.5;
   color: #eee7f5;
-  margin-bottom: 35px;
+  margin-top: 22px;
+  margin-bottom: 0;
 }
 .detail-metadata > span {
   display: flex;
@@ -1660,8 +1661,8 @@ option {
   align-items: center;
 }
 .detail-metadata svg {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
   color: #c0a0e0;
 }
@@ -3235,9 +3236,9 @@ option {
     margin-top: 18px;
   }
   .detail-metadata {
-    margin-bottom: 25px;
-    gap: 14px;
-    font-size: 18px;
+    margin-bottom: 0;
+    gap: 10px;
+    font-size: 16px;
   }
   .detail-content h2 {
     font-size: 28px;
@@ -3833,7 +3834,7 @@ option {
     margin-top: 23px;
   }
   .detail-metadata {
-    font-size: 17px;
+    font-size: 16px;
   }
   .detail-content h2 {
     font-size: 28px;

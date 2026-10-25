@@ -11,6 +11,8 @@ type Records = {
   resale: ResaleListing[];
   loading: boolean;
   error: string;
+  inventoryError: string;
+  inventoryLoaded: boolean;
   transactions: Transaction[];
   tickets: Ticket[];
   market: Ticket[];
@@ -24,6 +26,8 @@ const initial: Records = {
   resale: [],
   loading: true,
   error: "",
+  inventoryError: "",
+  inventoryLoaded: false,
   transactions: [],
   tickets: [],
   market: [],
@@ -60,49 +64,64 @@ export function clearRecords() {
     ...initial,
     inventory: state.inventory,
     soldCount: state.soldCount,
+    resale: state.resale,
+    market: state.market,
+    inventoryLoaded: state.inventoryLoaded,
   };
   emit();
 }
 export async function refreshRecords() {
   const run = ++generation;
   const user = currentAccount();
-  try {
-    const [publicData, privateData] = await Promise.all([
-      demoApi<
-        Pick<Records, "inventory" | "market" | "soldCount" | "resale"> & {
-          events: EventSeating[];
-          venues: VenueLayout[];
-        }
-      >("inventory"),
-      user
-        ? demoApi<
-            Pick<
-              Records,
-              "bookings" | "tickets" | "balance" | "history" | "transactions"
-            >
-          >("records")
-        : Promise.resolve({
-            transactions: [],
-            bookings: [],
-            tickets: [],
-            balance: 10,
-            history: [],
-          }),
-    ]);
-    if (run !== generation || currentAccount()?.id !== user?.id) return;
-    applyServerSeating(publicData.events, publicData.venues);
-    state = { ...publicData, ...privateData, loading: false, error: "" };
-    emit();
-  } catch (e) {
-    if (run === generation) {
-      state = {
-        ...initial,
-        inventory: state.inventory,
-        loading: false,
-        error:
-          e instanceof Error ? e.message : "Unable to load account records.",
-      };
+  await Promise.all([
+    (async () => {
+      try {
+        const publicData = await demoApi<
+          Pick<Records, "inventory" | "market" | "soldCount" | "resale"> & {
+            events: EventSeating[];
+            venues: VenueLayout[];
+          }
+        >("inventory");
+        if (run !== generation) return;
+        applyServerSeating(publicData.events, publicData.venues);
+        state = { ...state, ...publicData, loading: false, inventoryLoaded: true, inventoryError: "" };
+      } catch (e) {
+        if (run !== generation) return;
+        state = {
+          ...state,
+          loading: false,
+          inventoryError: e instanceof Error ? e.message : "Unable to load ticket listings.",
+        };
+      }
       emit();
-    }
-  }
+    })(),
+    (async () => {
+      try {
+        const privateData = await (user
+          ? demoApi<
+              Pick<
+                Records,
+                "bookings" | "tickets" | "balance" | "history" | "transactions"
+              >
+            >("records")
+          : Promise.resolve({
+              transactions: [],
+              bookings: [],
+              tickets: [],
+              balance: 10,
+              history: [],
+            }));
+        if (run !== generation || currentAccount()?.id !== user?.id) return;
+        state = { ...state, ...privateData, error: "" };
+        emit();
+      } catch (e) {
+        if (run !== generation || currentAccount()?.id !== user?.id) return;
+        state = {
+          ...state,
+          error: e instanceof Error ? e.message : "Unable to load account records.",
+        };
+        emit();
+      }
+    })(),
+  ]);
 }

@@ -29,7 +29,7 @@ export function useDemo() {
 }
 export async function connect(wallet: string | null) {
   await accountAction("wallet", { wallet });
-  await refreshRecords();
+  void refreshRecords();
 }
 export async function resetDemo() {
   await demoApi("reset", {});

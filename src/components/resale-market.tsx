@@ -3,9 +3,10 @@ import Image from "next/image";
 import { useState } from "react";
 import { concerts } from "@/lib/concerts";
 import { seatingFor, useSeating } from "@/lib/seating-store";
-import { useRecords } from "@/lib/customer-records";
+import { refreshRecords, useRecords } from "@/lib/customer-records";
 import type { ResaleListing } from "@/lib/resale-types";
 import ResaleCheckout from "./resale-checkout";
+import { resalePreview } from "@/lib/resale-preview";
 
 export default function ResaleMarket({ onWallet }: { onWallet: () => void }) {
   const snapshot = useSeating();
@@ -13,7 +14,7 @@ export default function ResaleMarket({ onWallet }: { onWallet: () => void }) {
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [selected, setSelected] = useState<ResaleListing | null>(null);
-  const listings = data.resale.map((listing) => {
+  const listings = (data.inventoryLoaded ? data.resale : resalePreview).map((listing) => {
     const concert = concerts.find((c) => c.id === listing.eventId)!;
     const { venue } = seatingFor(snapshot, listing.eventId);
     return {
@@ -77,6 +78,17 @@ export default function ResaleMarket({ onWallet }: { onWallet: () => void }) {
       <p className="resale-preview-note">
         Each ticket includes the seat shown. Payments are simulated.
       </p>
+      {data.loading && !listings.length && (
+        <p role="status">Loading resale tickets…</p>
+      )}
+      {data.inventoryError && (
+        <div className="resale-no-results" role="alert">
+          <p>Unable to refresh resale tickets. Please try again.</p>
+          <button className="button secondary compact" onClick={() => void refreshRecords()}>
+            Retry
+          </button>
+        </div>
+      )}
       <div className="resale-catalog-grid">
         {filtered.map(
           ({
@@ -179,7 +191,7 @@ export default function ResaleMarket({ onWallet }: { onWallet: () => void }) {
           onWallet={onWallet}
         />
       )}
-      {!filtered.length && !data.loading && (
+      {!filtered.length && !data.loading && !data.inventoryError && (
         <div className="resale-no-results">
           <h3>No matching tickets</h3>
           <p>Try another concert or ticket category.</p>

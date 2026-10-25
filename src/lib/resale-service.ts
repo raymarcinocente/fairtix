@@ -3,14 +3,8 @@ import { randomUUID } from "node:crypto";
 import type { Database } from "./mock-account-server";
 import { sectionSeats, seededStatus, type SeatTicket } from "./seating-data";
 import type { ResaleListing } from "./resale-types";
+import { resaleExamples } from "./resale-preview";
 
-const examples = [
-  ["neon-nights", "vvip"],
-  ["golden-hour", "vip"],
-  ["wild-hearts", "gold"],
-  ["beyond-the-noise", "silver"],
-  ["pulse-festival", "ga"],
-];
 export function seedResale(db: Database) {
   if (db.resaleSeeded) return false;
   const sellerId = "prototype-market-seller";
@@ -25,7 +19,7 @@ export function seedResale(db: Database) {
       wallet: "ben",
       balance: 10,
     });
-  for (const [eventId, categoryId] of examples) {
+  for (const [eventId, categoryId] of resaleExamples) {
     const event = db.events.find((e) => e.eventId === eventId),
       venue = db.venues.find((v) => v.id === event?.venueId);
     if (!event || !venue) continue;

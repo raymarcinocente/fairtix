@@ -158,9 +158,10 @@ export async function authAction(
       "Account authentication is disabled in this prototype.",
       410,
     );
-  const visitor = await apiUser(db);
   if (body.wallet !== null && body.wallet !== "ana" && body.wallet !== "ben")
     throw new ApiError("Choose a supported sample wallet.");
+  const account = await prototypeVisitor(db);
+  const visitor = db.users.find((user) => user.id === account.id)!;
   visitor.wallet = body.wallet as string | null;
   return { user: publicAccount(visitor) };
 }

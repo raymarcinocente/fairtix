@@ -27,7 +27,6 @@ export function ConcertDetail({
   onWallet: () => void;
 }) {
   const [booking, setBooking] = useState(false);
-  const { ready } = useAuth();
   const router = useRouter();
   const resume = useSyncExternalStore(
     () => () => {},
@@ -59,11 +58,6 @@ export function ConcertDetail({
             <br />
             <strong>{concert.title}</strong>
           </h1>
-          <p>{concert.subtitle}</p>
-        </div>
-      </div>
-      <div className="detail-content">
-        <div>
           <div className="detail-metadata">
             <span>
               <CinemaIcon name="calendar" />
@@ -74,6 +68,11 @@ export function ConcertDetail({
               {concert.venue} · {concert.city}
             </span>
           </div>
+          {concert.subtitle && <p>{concert.subtitle}</p>}
+        </div>
+      </div>
+      <div className="detail-content">
+        <div>
           <h2>Concert Details</h2>
           <p>
             {concert.genre} concert at {concert.venue}, {concert.city}.
@@ -111,7 +110,7 @@ export function ConcertDetail({
           <button
             className="button primary full"
             onClick={() => setBooking(true)}
-            disabled={!prices.length || !ready}
+            disabled={!prices.length}
           >
             Select Seats <CinemaIcon name="arrow" size={18} />
           </button>

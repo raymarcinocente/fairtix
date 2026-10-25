@@ -248,6 +248,8 @@ function FairTixView({
   const showcase = useShowcase();
   const wallet = wallets.find((w) => w.id === state.wallet);
   const [walletOpen, setWalletOpen] = useState(false);
+  const [walletBusy, setWalletBusy] = useState(false);
+  const [walletError, setWalletError] = useState("");
   const [checkout, setCheckout] = useState(false);
   const [purchased, setPurchased] = useState<Ticket | null>(null);
   const [listing, setListing] = useState<Ticket | null>(null);
@@ -873,12 +875,17 @@ function FairTixView({
               <button
                 className={`wallet-option ${state.wallet === w.id ? "selected" : ""}`}
                 key={w.id}
+                disabled={walletBusy}
                 onClick={async () => {
+                  setWalletBusy(true);
+                  setWalletError("");
                   try {
                     await connect(w.id);
                   } catch (e) {
-                    setMessage({ text: (e as Error).message, ok: false });
+                    setWalletError((e as Error).message);
                     return;
+                  } finally {
+                    setWalletBusy(false);
                   }
                   setWalletOpen(false);
                   setMessage(null);
@@ -895,6 +902,8 @@ function FairTixView({
               </button>
             ))}
           </div>
+          {walletBusy && <p role="status">Connecting sample wallet…</p>}
+          {walletError && <p role="alert">{walletError}</p>}
           {wallet && (
             <button
               className="button secondary full"
