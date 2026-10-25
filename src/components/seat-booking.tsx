@@ -2,12 +2,19 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { type Concert } from "@/lib/concerts";
-import { useDemo, wallets } from "@/lib/demo-store";
+import { useShowcase, type ShowcaseBooking } from "@/lib/showcase-store";
 import {
-  createShowcaseBooking,
-  useShowcase,
-  type ShowcaseBooking,
-} from "@/lib/showcase-store";
+  checkBookingPayment,
+  clearPending,
+  connectFreighter,
+  pendingPayment,
+  prepareBookingPayment,
+  shortAddress,
+  signAndSubmitBookingPayment,
+  type PaymentResult,
+  type PaymentReview,
+} from "@/lib/paid-booking-client";
+import { formatStroops, usdcToStroops } from "@/lib/xlm-price";
 import {
   ownSelection,
   releaseSelection,
@@ -21,8 +28,6 @@ import { CinemaIcon } from "./cinema";
 import { SectionSeats, useSeatingClock, VenueMap } from "./seating-map";
 import { demoApi, useAuth } from "@/lib/auth-client";
 import { refreshRecords } from "@/lib/customer-records";
-import CurrencyConverter from "./currency-converter";
-import WalletBalances from "./wallet-balances";
 
 const money = (n: number) => n.toFixed(2);
 export function BookingSeatDetails({ items }: { items: SeatTicket[] }) {
@@ -48,7 +53,6 @@ export function BookingSeatDetails({ items }: { items: SeatTicket[] }) {
 export default function SeatBooking({
   concert,
   onClose,
-  onWallet,
   resume = false,
 }: {
   concert: Concert;
@@ -58,8 +62,6 @@ export default function SeatBooking({
 }) {
   const { ready } = useAuth();
   const ref = useRef<HTMLDialogElement>(null);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const state = useDemo();
   const showcase = useShowcase();
   const snapshot = useSeating();
   const now = useSeatingClock();
@@ -72,6 +74,15 @@ export default function SeatBooking({
   const [error, setError] = useState("");
   const [progress, setProgress] = useState(0);
   const [expanded, setExpanded] = useState(false);
+  // Live payment through Paiflow on Stellar testnet, signed in Freighter.
+  const [freighter, setFreighter] = useState<string | null>(null);
+  const [review, setReview] = useState<PaymentReview | null>(null);
+  const [consent, setConsent] = useState(false);
+  const [payment, setPayment] = useState<PaymentResult | null>(null);
+  const [pending, setPending] = useState(() => {
+    const saved = typeof window === "undefined" ? null : pendingPayment();
+    return saved?.eventId === concert.id ? saved.orderId : null;
+  });
   const selected = ownSelection(snapshot, concert.id, showcase.inventory, now);
   const deadline = selectionDeadline(snapshot, concert.id);
   const remaining = deadline
@@ -81,7 +92,7 @@ export default function SeatBooking({
     Math.round(selected.reduce((sum, item) => sum + item.price, 0) * 100) / 100;
   const fee = Math.round(subtotal * 5) / 100;
   const total = Math.round((subtotal + fee) * 100) / 100;
-  const wallet = wallets.find((w) => w.id === state.wallet);
+  const totalXlm = formatStroops(usdcToStroops(total));
   const section = venue.sections.find((s) => s.id === sectionId);
   const expired = !!deadline && now > 0 && deadline <= now;
   const groups = [...new Set(selected.map((s) => s.categoryId))].map((id) => ({
@@ -122,7 +133,6 @@ export default function SeatBooking({
     dialog?.showModal();
     return () => {
       dialog?.close();
-      if (timer.current) clearTimeout(timer.current);
     };
   }, []);
   function choose(id: string) {
@@ -133,9 +143,22 @@ export default function SeatBooking({
       setError(e instanceof Error ? e.message : "Unable to select this seat.");
     }
   }
-  function pay() {
-    if (!wallet) {
-      setError("Connect a wallet to continue.");
+  const message = (e: unknown, fallback: string) =>
+    e instanceof Error ? e.message : fallback;
+  async function connectWallet() {
+    setError("");
+    try {
+      setFreighter(await connectFreighter());
+      setReview(null);
+      setConsent(false);
+    } catch (e) {
+      setError(message(e, "Unable to connect Freighter."));
+    }
+  }
+  // Step 1: the server prices the seats and prepares the Paiflow payment.
+  async function reviewPayment() {
+    if (!freighter) {
+      setError("Connect Freighter to continue.");
       return;
     }
     if (!selected.length || expired) {
@@ -143,36 +166,71 @@ export default function SeatBooking({
       setError("Your reservation expired. Select your tickets again.");
       return;
     }
-    const order = [...selected];
-    const session = snapshot.session;
     setStage("processing");
     setProgress(0);
     setError("");
-    timer.current = setTimeout(() => {
-      setProgress(1);
-      timer.current = setTimeout(async () => {
-        try {
-          const result = await createShowcaseBooking({
-            eventId: concert.id,
-            wallet: wallet.id,
-            category: groups.map((g) => g.name).join(", "),
-            seats: order.map((s) => s.id),
-            lineItems: order,
-            holdSession: session,
-            subtotal,
-            fee,
-            total,
-          });
-          setBooking(result);
-          setStage("confirmed");
-        } catch (e) {
-          setError(
-            e instanceof Error ? e.message : "Unable to create booking.",
-          );
-          setStage("seats");
-        }
-      }, 650);
-    }, 650);
+    try {
+      const prepared = await prepareBookingPayment({
+        eventId: concert.id,
+        seats: selected.map((s) => s.id),
+        total,
+        holdSession: snapshot.session,
+        holdExpiresAt: deadline,
+        walletAddress: freighter,
+      });
+      setReview(prepared);
+      setPending(prepared.orderId);
+      setConsent(false);
+    } catch (e) {
+      setError(message(e, "Unable to prepare this payment."));
+    }
+    setStage("checkout");
+  }
+  // Step 2: after explicit consent, Freighter signs and the server submits.
+  async function pay() {
+    if (!review || !freighter || !consent) return;
+    setStage("processing");
+    setProgress(1);
+    setError("");
+    try {
+      showResult(await signAndSubmitBookingPayment(review, freighter), "checkout");
+    } catch (e) {
+      setError(message(e, "Unable to complete this payment."));
+      setStage("checkout");
+    }
+  }
+  // Recovery: re-verify the original transaction; never pays again.
+  async function checkPayment(orderId: string) {
+    const back = stage === "seats" ? "seats" : "checkout";
+    setStage("processing");
+    setProgress(2);
+    setError("");
+    try {
+      showResult(await checkBookingPayment(orderId), back);
+    } catch (e) {
+      setError(message(e, "Unable to check this payment."));
+      setStage(back);
+    }
+  }
+  function showResult(result: PaymentResult, back: "seats" | "checkout") {
+    setPayment(result);
+    if (result.status === "paid" && result.booking) {
+      setBooking(result.booking);
+      setPending(null);
+      setReview(null);
+      releaseSelection(concert.id);
+      void refreshRecords();
+      setStage("confirmed");
+      return;
+    }
+    if (result.status === "failed") {
+      setPending(null);
+      setReview(null);
+      setError(
+        `The payment failed${result.detail ? `: ${result.detail}` : ""}. No booking was created.`,
+      );
+    }
+    setStage(back);
   }
   return (
     <dialog
@@ -234,7 +292,22 @@ export default function SeatBooking({
           );
         })}
       </ol>
-      {(error || mixedInvalid || (expired && stage !== "confirmed")) && (
+      {pending && stage !== "processing" && stage !== "confirmed" && (
+        <div className="seat-error" role="status">
+          You have a payment in progress for this event. Check it before
+          paying again.{" "}
+          <button
+            type="button"
+            className="button secondary compact"
+            onClick={() => checkPayment(pending)}
+          >
+            Check payment
+          </button>
+        </div>
+      )}
+      {(error ||
+        mixedInvalid ||
+        (expired && stage !== "confirmed" && !review)) && (
         <p className="seat-error" role="alert">
           {error ||
             (mixedInvalid
@@ -249,8 +322,9 @@ export default function SeatBooking({
           </span>
           <h3>Your booking is confirmed.</h3>
           <p>
-            No funds were sent. Your receipt and QR pass are saved to My
-            Tickets.
+            {booking.txHash
+              ? "Paid on Stellar Testnet through Paiflow and payout-verified. Your receipt and QR pass are saved to My Tickets."
+              : "No funds were sent. Your receipt and QR pass are saved to My Tickets."}
           </p>
           <BookingSeatDetails items={booking.lineItems || []} />
           <div className="receipt">
@@ -264,11 +338,24 @@ export default function SeatBooking({
             </div>
             <div>
               <span>Total</span>
-              <strong>{money(booking.total)} USDC</strong>
+              <strong>
+                {money(booking.total)} USDC
+                {booking.paidXlm ? ` · paid ${booking.paidXlm} XLM` : ""}
+              </strong>
             </div>
             <div>
               <span>Transaction hash</span>
-              <strong>None · Simulated payment</strong>
+              {booking.txHash ? (
+                <a
+                  href={`https://stellar.expert/explorer/testnet/tx/${booking.txHash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <strong>{booking.txHash.slice(0, 12)}… on Stellar Expert</strong>
+                </a>
+              ) : (
+                <strong>None · Simulated payment</strong>
+              )}
             </div>
           </div>
           <Link href="/tickets" className="button primary" onClick={onClose}>
@@ -345,40 +432,91 @@ export default function SeatBooking({
               </>
             ) : (
               <div className="checkout-preview">
-                <span className="cinema-kicker">Stellar / USDC</span>
+                <span className="cinema-kicker">Stellar Testnet / XLM via Paiflow</span>
                 <h3>
                   {stage === "processing"
-                    ? "Processing your booking…"
+                    ? "Processing your payment…"
                     : "Payment Details"}
                 </h3>
                 <div className="payment-wallet">
                   <CinemaIcon name="user" size={23} />
                   <div>
                     <strong>
-                      {wallet
-                        ? `${wallet.name}’s sample wallet`
-                        : "Wallet not connected"}
+                      {freighter ? "Freighter wallet" : "Wallet not connected"}
                     </strong>
                     <span>
-                      {wallet?.address || "Connect a wallet to continue."}
+                      {freighter
+                        ? `${shortAddress(freighter)} · Testnet`
+                        : "Connect Freighter on Stellar Testnet to pay."}
                     </span>
                   </div>
-                  {stage !== "processing" && (
+                  {stage !== "processing" && !review && (
                     <button
                       type="button"
                       className="button secondary compact"
-                      onClick={onWallet}
+                      onClick={connectWallet}
                     >
-                      {wallet ? "Use Another Wallet" : "Connect"}
+                      {freighter ? "Reconnect" : "Connect Freighter"}
                     </button>
                   )}
                 </div>
-                {stage !== "processing" && <><WalletBalances /><CurrencyConverter total={total} /></>}
+                {review ? (
+                  <div className="receipt">
+                    <div>
+                      <span>Network</span>
+                      <strong>TESTNET</strong>
+                    </div>
+                    <div>
+                      <span>You pay</span>
+                      <strong>{review.review.amountXlm} XLM</strong>
+                    </div>
+                    {review.review.recipients.map((r) => (
+                      <div key={r.address}>
+                        <span>{r.label}</span>
+                        <strong>
+                          {r.amountXlm} XLM → {shortAddress(r.address)}
+                        </strong>
+                      </div>
+                    ))}
+                    <div>
+                      <span>Max network fee</span>
+                      <strong>{review.review.maxFeeXlm} XLM (extra)</strong>
+                    </div>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={consent}
+                        onChange={(e) => setConsent(e.target.checked)}
+                      />{" "}
+                      I approve paying {review.review.amountXlm} XLM plus the
+                      network fee on Stellar Testnet.
+                    </label>
+                  </div>
+                ) : (
+                  <p className="seat-summary-note">
+                    {money(total)} USDC is charged as about {totalXlm} XLM at
+                    the demo rate (1 XLM = 0.17 USD). Paiflow splits it 90% to
+                    the shop and 10% to the community fund.
+                  </p>
+                )}
+                {payment && payment.status !== "paid" && payment.status !== "failed" && payment.txHash && (
+                  <div className="seat-error" role="status">
+                    {payment.warning ||
+                      "Your payment is waiting for confirmation. Check it again shortly; do not pay twice."}{" "}
+                    <a
+                      href={`https://stellar.expert/explorer/testnet/tx/${payment.txHash}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      View transaction
+                    </a>
+                  </div>
+                )}
                 <div className="payment-status-list">
                   {[
-                    "Wallet Connection",
-                    "Payment Review",
-                    "Booking Confirmation",
+                    "Prepare Payment",
+                    "Sign & Submit",
+                    "Verify Payouts",
                   ].map((label, i) => (
                     <div
                       key={label}
@@ -403,8 +541,9 @@ export default function SeatBooking({
                   ))}
                 </div>
                 <div className="demo-payment-warning">
-                  No USDC balance is deducted. No transaction hash is generated.
-                  This is not a confirmed Stellar payment.
+                  Testnet only: this sends real Stellar Testnet XLM, which has
+                  no monetary value. Your booking is issued only after the
+                  payment and both payouts are verified.
                 </div>
               </div>
             )}
@@ -542,27 +681,49 @@ export default function SeatBooking({
                 </button>
               ) : (
                 <>
-                  <button
-                    type="button"
-                    className="button primary full"
-                    disabled={
-                      !wallet ||
-                      stage === "processing" ||
-                      !selected.length ||
-                      expired ||
-                      mixedInvalid
-                    }
-                    onClick={pay}
-                  >
-                    {stage === "processing"
-                      ? "Processing…"
-                      : `Complete Booking · ${money(total)} USDC`}
-                  </button>
+                  {review ? (
+                    <button
+                      type="button"
+                      className="button primary full"
+                      disabled={!consent || stage === "processing" || !!payment}
+                      onClick={pay}
+                    >
+                      {stage === "processing"
+                        ? "Processing…"
+                        : `Sign in Freighter & Pay ${review.review.amountXlm} XLM`}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="button primary full"
+                      disabled={
+                        !freighter ||
+                        stage === "processing" ||
+                        !selected.length ||
+                        expired ||
+                        mixedInvalid
+                      }
+                      onClick={reviewPayment}
+                    >
+                      {stage === "processing"
+                        ? "Processing…"
+                        : `Review Payment · ≈${totalXlm} XLM`}
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="button quiet full"
-                    disabled={stage === "processing"}
-                    onClick={() => setStage("seats")}
+                    disabled={stage === "processing" || !!payment}
+                    onClick={() => {
+                      // Nothing was signed yet, so dropping the unsigned
+                      // preparation is safe.
+                      if (review) {
+                        clearPending();
+                        setPending(null);
+                        setReview(null);
+                      }
+                      setStage("seats");
+                    }}
                   >
                     Back to seats
                   </button>

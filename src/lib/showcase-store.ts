@@ -19,8 +19,11 @@ export type ShowcaseBooking = {
   subtotal: number;
   fee: number;
   total: number;
-  status: "demo-confirmed";
+  // "confirmed" = paid on Stellar testnet through Paiflow and payout-verified.
+  status: "demo-confirmed" | "confirmed";
   createdAt: string;
+  txHash?: string;
+  paidXlm?: string;
   entryStatus?: "redeemed";
   lineItems?: SeatTicket[];
 };

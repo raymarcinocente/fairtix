@@ -16,10 +16,11 @@ import {
   sectionSeats,
   legacySeatId,
   seededStatus,
-  type SeatTicket,
   type EventSeating,
   type VenueLayout,
 } from "@/lib/seating-data";
+import { priceBooking } from "@/lib/booking-pricing";
+import { serialize } from "@/lib/db-queue";
 
 const headers = { "Cache-Control": "private, no-store" };
 type Context = { params: Promise<{ action: string[] }> };
@@ -94,11 +95,8 @@ export async function GET(request: NextRequest, context: Context) {
     return failure(e);
   }
 }
-let queue: Promise<unknown> = Promise.resolve();
 export async function POST(request: NextRequest, context: Context) {
-  const work = queue.then(() => mutate(request, context));
-  queue = work.catch(() => {});
-  return work;
+  return serialize(() => mutate(request, context));
 }
 async function mutate(request: NextRequest, context: Context) {
   try {
@@ -462,90 +460,7 @@ async function mutate(request: NextRequest, context: Context) {
             "Live payment verification is not configured.",
             503,
           );
-        const event = db.events.find((e) => e.eventId === body.eventId);
-        const venue = db.venues.find((v) => v.id === event?.venueId);
-        if (!event || !venue) throw new ApiError("Event not found.");
-        if (
-          typeof body.holdExpiresAt !== "number" ||
-          body.holdExpiresAt <= Date.now() ||
-          body.holdExpiresAt > Date.now() + 301000
-        )
-          throw new ApiError(
-            "Your reservation expired. Select your tickets again.",
-          );
-        const reservation = db.holds.find(
-          (h) =>
-            h.session === body.holdSession &&
-            h.eventId === body.eventId &&
-            h.expires > Date.now(),
-        );
-        if (
-          !reservation ||
-          !Array.isArray(body.seats) ||
-          body.seats.some((s: string) => !reservation.seats.includes(s))
-        )
-          throw new ApiError(
-            "Your reservation expired. Select your tickets again.",
-          );
-        if (
-          !Array.isArray(body.seats) ||
-          !body.seats.length ||
-          body.seats.length > 6 ||
-          new Set(body.seats).size !== body.seats.length
-        )
-          throw new ApiError("Select between 1 and 6 tickets.");
-        const lines: SeatTicket[] = body.seats.map((id: unknown) => {
-          if (typeof id !== "string") throw new ApiError("Invalid seat.");
-          const section = venue.sections.find((s) =>
-            sectionSeats(s).some((seat) => seat.id === id),
-          );
-          const seat =
-            section && sectionSeats(section).find((s) => s.id === id);
-          const category = venue.categories.find(
-            (c) => c.id === section?.categoryId,
-          );
-          if (
-            !seat ||
-            !section ||
-            !category ||
-            event.overrides[id] === "blocked"
-          )
-            throw new ApiError("This seat is unavailable.");
-          if (
-            db.bookings.some(
-              (b) =>
-                b.eventId === event.eventId &&
-                b.seats.some((s) => legacySeatId(s) === id),
-            )
-          )
-            throw new ApiError(
-              "One of these seats was booked. Select your tickets again.",
-              409,
-            );
-          return {
-            ...seat,
-            sectionName: section.name,
-            categoryId: category.id,
-            categoryName: category.name,
-            color: category.color,
-            price: event.prices[category.id],
-          };
-        });
-        if (
-          !event.allowMixed &&
-          new Set(lines.map((l) => l.categoryId)).size > 1
-        )
-          throw new ApiError("Choose one ticket category per booking.");
-        const subtotal =
-          Math.round(lines.reduce((sum, l) => sum + l.price, 0) * 100) / 100;
-        const fee = Math.round(subtotal * 5) / 100;
-        if (
-          !Number.isFinite(subtotal) ||
-          typeof body.total !== "number" ||
-          !Number.isFinite(body.total) ||
-          Math.abs(body.total - subtotal - fee) > 0.001
-        )
-          throw new ApiError("Prices changed. Review your order.");
+        const { event, reservation, lines, subtotal, fee } = priceBooking(db, body);
         const booking = {
           id: `DEMO-${randomUUID()}`,
           eventId: event.eventId,

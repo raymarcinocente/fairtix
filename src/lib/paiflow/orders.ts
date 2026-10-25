@@ -4,6 +4,7 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ApiResponse, ExecutePrepared } from "@paiflow/sdk";
 import { DATA_DIR } from "../data-dir";
+import type { SeatTicket } from "../seating-data";
 
 // DEVELOPMENT ONLY: a file-per-order JSON store with an in-process lock.
 // Replace with a durable database and row/advisory locks before production.
@@ -33,6 +34,19 @@ export interface Order {
   signedXdr?: string;
   submittedAt?: string;
   lastCheck?: { at: string; status: string; detail?: string };
+  /** Seats being paid for; the booking is created only after verification. */
+  booking?: BookingDraft;
+}
+
+export interface BookingDraft {
+  eventId: string;
+  seats: string[];
+  lineItems: SeatTicket[];
+  category: string;
+  subtotal: number;
+  fee: number;
+  total: number;
+  holdSession: string;
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

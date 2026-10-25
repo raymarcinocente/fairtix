@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { PaiflowApiError, PaiflowTransportError } from "@paiflow/sdk";
 import { EnvelopeMismatchError } from "./envelope";
-import { OrderNotFoundError, type Order } from "./orders";
+import { OrderNotFoundError } from "./orders";
 
 // Placeholder ownership: an httpOnly browser session cookie. Replace with your
 // app's real user authentication when Fairtix gets accounts.
@@ -17,10 +17,6 @@ export async function getSession(create = false): Promise<string | undefined> {
   const session = randomUUID();
   jar.set(SESSION_COOKIE, session, { httpOnly: true, sameSite: "strict", secure: process.env.NODE_ENV === "production", path: "/" });
   return session;
-}
-
-export function assertOwner(order: Order, session: string | undefined): void {
-  if (!session || order.ownerSession !== session) throw new OrderNotFoundError();
 }
 
 export class BadRequestError extends Error {}

@@ -11,6 +11,8 @@ export type Transaction = {
   amount: number;
   currency: "XLM" | "USDC";
   createdAt: string;
+  /** Stellar testnet transaction hash for live Paiflow payments. */
+  txHash?: string;
 };
 export type Account = {
   id: string;
