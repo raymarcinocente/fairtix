@@ -1,0 +1,250 @@
+.account-container {
+  max-width: 1060px;
+  margin: 45px auto 100px;
+  padding: 24px;
+}
+.password-input-group {
+  display: grid;
+  gap: 8px;
+}
+.ticket-details,
+.showcase-ticket,
+.qr-pass .mono {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.auth-container {
+  max-width: 540px;
+}
+.account-container h1 {
+  font-size: clamp(30px, 4vw, 48px);
+  margin-bottom: 28px;
+}
+.account-panel {
+  padding: 30px;
+  background: #19151f;
+  border: 1px solid #ffffff20;
+  border-radius: 20px;
+  margin-bottom: 24px;
+}
+.account-panel h2 {
+  font-size: 24px;
+  margin: 0 0 18px;
+}
+.account-panel p {
+  color: #b6b2c4;
+  margin: 14px 0;
+  overflow-wrap: anywhere;
+}
+.account-panel a,
+.account-form-options a {
+  color: #ffcc30;
+}
+.account-form {
+  display: grid;
+  gap: 20px;
+}
+.account-form label {
+  display: grid;
+  gap: 8px;
+  font-size: 15px;
+}
+.account-form input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #ffffff30;
+  border-radius: 10px;
+  background: #0b0a10;
+  padding: 13px 15px;
+  color: white;
+  font: inherit;
+}
+.account-form input:focus {
+  outline: 2px solid #ffcc30;
+  outline-offset: 2px;
+}
+.account-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.password-field {
+  position: relative;
+  display: flex;
+}
+.password-field input {
+  padding-right: 70px;
+}
+.password-field button {
+  position: absolute;
+  right: 12px;
+  top: 0;
+  height: 100%;
+  background: none;
+  color: #ffcc30;
+  border: 0;
+  cursor: pointer;
+}
+.account-form .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.account-form input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #ffcc30;
+}
+.account-form-options {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  font-size: 14px;
+}
+.account-demo-note,
+.field-help {
+  font-size: 13px;
+  color: #b6b2c4;
+}
+.account-form .field-help {
+  margin: -8px 0 0;
+}
+.demo-credentials {
+  margin-top: 25px;
+  font-size: 13px;
+}
+.demo-credentials summary {
+  cursor: pointer;
+  color: #b6b2c4;
+}
+.account-message {
+  padding: 14px;
+  background: #233b28;
+  border-radius: 10px;
+  color: #b9efc4;
+}
+.account-tabs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.account-tabs a {
+  border: 1px solid #ffffff25;
+  padding: 10px 16px;
+  border-radius: 30px;
+}
+.account-facts {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 16px;
+}
+.account-facts dt {
+  color: #b6b2c4;
+}
+.account-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.account-bookings {
+  display: grid;
+  gap: 20px;
+}
+.account-bookings article {
+  padding: 15px 0;
+  border-bottom: 1px solid #ffffff20;
+}
+.account-bookings h3 {
+  font-size: 20px;
+}
+.account-menu {
+  position: relative;
+}
+.account-menu summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #ffffff25;
+  border-radius: 28px;
+  padding: 12px 16px;
+}
+.account-menu summary::-webkit-details-marker {
+  display: none;
+}
+.account-menu-items {
+  position: absolute;
+  right: 0;
+  top: 55px;
+  min-width: 190px;
+  background: #19151f;
+  border: 1px solid #ffffff30;
+  border-radius: 14px;
+  padding: 8px;
+  box-shadow: 0 12px 35px #0009;
+  z-index: 100;
+}
+.account-menu-items a,
+.account-menu-items button {
+  display: block;
+  padding: 12px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: white;
+  font: inherit;
+  cursor: pointer;
+  border-radius: 8px;
+}
+.account-menu-items a:hover,
+.account-menu-items button:hover {
+  background: #ffffff10;
+}
+.auth-nav-link {
+  font-size: 13px;
+  white-space: nowrap;
+}
+.auth-nav-register {
+  color: #ffcc30;
+}
+.account-panel button:disabled,
+.account-form button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+@media (max-width: 640px) {
+  .account-panel {
+    padding: 22px;
+  }
+  .account-container {
+    padding: 16px;
+    margin-top: 15px;
+  }
+  .account-form-options {
+    flex-wrap: wrap;
+  }
+  .account-menu summary {
+    padding: 10px;
+  }
+  .account-menu-name {
+    max-width: 65px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cinema-header-actions {
+    gap: 10px !important;
+  }
+  .auth-nav-link {
+    font-size: 12px;
+  }
+  .account-facts {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .account-facts dd {
+    margin-bottom: 12px;
+  }
+}

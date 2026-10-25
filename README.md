@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+﻿# FairTix
 
-## Getting Started
+A cinematic concert ticketing UI built with Next.js App Router, React, TypeScript, and Tailwind CSS. The redesign uses a dark background, gold primary actions, violet accents, a photographic featured hero, horizontal poster shelves, perspective poster previews, and independent mobile navigation.
 
-First, run the development server:
+## Run
 
-```bash
+```sh
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000. Keep using the `dev` branch. Next.js was retained at the user's request; no Vite migration was performed.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```sh
+npm run lint
+npm run build
+npx playwright install chromium
+npm run test:ui
+npm run test:seating
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The UI smoke test expects a running development server. Override `BASE_URL` to test another local instance. It covers discovery, saved shows, search, seat booking, fee totals, QR entry, the original XLM purchase/resale workflow, narrow phone/tablet/desktop layouts, and reduced motion.
 
-## Learn More
+## Routes
 
-To learn more about Next.js, take a look at the following resources:
+| Route                              | Purpose                                                                       |
+| ---------------------------------- | ----------------------------------------------------------------------------- |
+| `/`                                | Featured concert pagination, genre filters, poster shelves, 3D poster preview |
+| `/concerts`                        | Searchable concert catalog with city filters                                  |
+| `/concerts/[id]`                   | Fictional concert details, seat selection, demo USDC checkout                 |
+| `/upcoming`, `/presale`, `/venues` | Filtered discovery and venue browsing                                         |
+| `/saved`                           | Saved concert list                                                            |
+| `/event`                           | Original Iloilo After Hours demo event, unchanged 1 XLM purchase              |
+| `/tickets`                         | Original tickets and showcase booking passes with QR codes                    |
+| `/market`                          | Original capped XLM resale and ownership transfer                             |
+| `/scan`                            | Typed ticket ID check, single redemption, duplicate refusal                   |
+| `/profile`, `/account`             | Protected customer account, bookings, wallet, and transactions                |
+| `/organizer`                       | Local demo booking overview and simulated totals                              |
+| `/guide`                           | Original event walkthrough and planned Paiflow integration                    |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Search is available in the header and mobile bottom navigation. Hearts save concerts locally. Carousel arrows disable at the ends. Reduced motion disables hero/poster animation.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Accounts and demo data
 
-## Deploy on Vercel
+See [AUTHENTICATION.md](AUTHENTICATION.md) for demo credentials, account routes, sessions, email verification/reset, wallet separation, private bookings, role checks, and the Node.js/SQL Server production boundary.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Public browsing and seat selection are available without login. Checkout requires an account, preserves the five-minute reservation through login/registration, and revalidates it before booking. My Tickets and account routes are private; organizer and gate tools require a staff role.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The original event keeps its 1 XLM price, 1.1 XLM resale cap, and 50-ticket supply. Resale transfers ownership between authenticated accounts. USDC showcase checkout remains explicitly simulated. No real wallet signature, payment, payout, or transaction hash is created.
+
+Private records are stored by the local mock server in ignored .data/mock-accounts.json. Browser storage holds saved concert IDs, seating display configuration, and temporary holds. Legacy anonymous browser purchases are not assigned to new accounts without ownership evidence. Reset Demo clears only the signed-in account's purchases and restores that account's demo balance.
+
+## Seating and validation
+
+Five illustrative venue layouts use VVIP, VIP, Gold, Silver, and General Admission categories with event-specific prices. Neon Nights and Midnight Echoes share Harbor Stage geometry while retaining separate inventory and pricing. Reservations last five minutes, including through login, with up to six tickets and a 5% service fee. Receipts preserve category, section, row, seat/admission unit, accessibility, and per-ticket price.
+
+Organizer tools edit category names/colors/prices, section geometry/capacity, accessibility, blocked seats, and mixed-category policy. Server endpoints require a staff session and protect sold and reserved seats. Configuration is stored by the local server and synchronized to the UI. This mock uses a single-process write queue, not a distributed reservation system.
+
+Run npm run lint and npm run build. With the dev server running, npm run test:auth checks accounts and checkout access; npm run test:ui checks discovery, purchases/resale, QR entry, and responsive pages; npm run test:seating checks venue maps, selections, holds, organizer controls, expiry, and mobile layouts.
+
+## Assets and references
+
+The four new streaming/poster references and the pasted redesign brief supersede the earlier cream/blue presentation. The original FairTix documents still inform the original ticket workflow. The unrelated PayStream concept remains out of scope.
+
+See [ASSETS.md](ASSETS.md) for the original imagegen hero prompt, generated asset path, and licensed image sources. Assets are stored locally; original concert identities are fictional.
